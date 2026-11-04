@@ -482,13 +482,32 @@ export function embedDynamicTokensAsJsInterpolations(
 }
 
 /**
+ * If `value` is exactly one `${…}` interpolation, return the inner JS
+ * expression (may be empty). Any second `${` means multiple values / mixed
+ * text (`${a}_${b}`, `${a}${b}`, `${a}x${b}`) and returns `undefined` so
+ * callers keep a string template. Trailing text after a single `${…}`
+ * (`${a}other`) also returns `undefined`.
+ */
+export function unwrapWholeValueDollarRef(value: string): string|undefined {
+  const trimmed = String(value ?? '').trim();
+  if (!trimmed.startsWith('${') || !trimmed.endsWith('}')) {
+    return undefined;
+  }
+  // A second `${` anywhere after the opening one ⇒ multiple interpolations.
+  if (trimmed.indexOf('${', 2) !== -1) {
+    return undefined;
+  }
+  return trimmed.slice(2, -1).trim();
+}
+
+/**
  * Convert a string value to a JS expression, resolving e:, r:, c:, i:, and o: tokens.
  *
  * If the **entire** string is a single token (e.g. `<<e:HOST>>`, `r:email`,
  * `<<i:message>>`, `<<o:token>>`) or a whole-value `${…}` JS ref, returns a
  * bare JS expression (preserves number/bool/object types). Otherwise returns a
  * backtick template literal with `${…}` interpolations (plain YAML text and
- * mixed values like `${x}other`).
+ * multi-value / mixed forms like `${a}${b}`, `${a}/${b}`, `<<i:a>>_<<i:b>>`).
  */
 export function toTemplateValueJs(
     value: string, options?: JsTokenGenOptions): string {
@@ -498,10 +517,10 @@ export function toTemplateValueJs(
   }
 
   // Whole-value `${expr}` is a typed JS reference (parity with <<i:x>> / i:x),
-  // not a string template. Mixed text (`${x}other`) falls through below.
-  const trimmed = s.trim();
-  if (/^\$\{[\s\S]*\}$/.test(trimmed)) {
-    return trimmed.slice(2, -1).trim() || 'undefined';
+  // not a string template. Mixed text (`${x}other`, `${a}_${b}`) falls through.
+  const wholeRef = unwrapWholeValueDollarRef(s);
+  if (wholeRef !== undefined) {
+    return wholeRef || 'undefined';
   }
 
   const fullEnvAngle = new RegExp(`^<<\\s*e:(${TOKEN_NAME_RE})(${ACCESSOR_PATH_RE})\\s*>>$`);

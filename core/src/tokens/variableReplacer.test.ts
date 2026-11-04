@@ -21,6 +21,7 @@ import {
   rewriteOutputSetKey,
   toTemplateValueJs,
   toTemplateWithEnvVars,
+  unwrapWholeValueDollarRef,
 } from './variableReplacer';
 
 describe('normalizeEnvTokens', () => {
@@ -184,6 +185,7 @@ describe('toTemplateValueJs', () => {
   it('whole-value ${…} returns a typed JS ref (not a string template)', () => {
     expect(toTemplateValueJs('${x}')).toBe('x');
     expect(toTemplateValueJs('${x.y}')).toBe('x.y');
+    expect(toTemplateValueJs('${xxx.yyy}')).toBe('xxx.yyy');
     expect(toTemplateValueJs('${i1.body.body.xxx}')).toBe('i1.body.body.xxx');
     expect(toTemplateValueJs('  ${count}  ')).toBe('count');
     expect(toTemplateValueJs('${  spaced  }')).toBe('spaced');
@@ -197,11 +199,57 @@ describe('toTemplateValueJs', () => {
     expect(toTemplateValueJs('pre${x}')).toBe('`pre${x}`');
     expect(toTemplateValueJs('a${x}b')).toBe('`a${x}b`');
     expect(toTemplateValueJs('id-${user.id}')).toBe('`id-${user.id}`');
+    // Any second `${` means multiple values — never unwrap as a typed ref.
+    expect(toTemplateValueJs('${xx}_${yyy}')).toBe('`${xx}_${yyy}`');
+    expect(toTemplateValueJs('${a}_${b}_${c}')).toBe('`${a}_${b}_${c}`');
+    expect(toTemplateValueJs('${a}${b}')).toBe('`${a}${b}`');
+    expect(toTemplateValueJs('${a}/${b}')).toBe('`${a}/${b}`');
+    expect(toTemplateValueJs('${a} ${b}')).toBe('`${a} ${b}`');
+    expect(toTemplateValueJs('${a}-${b}-${c}')).toBe('`${a}-${b}-${c}`');
+  });
+
+  it('concatenated i:/e: tokens stay string templates', () => {
+    expect(toTemplateValueJs('<<i:xx>>_<<i:yyy>>')).toBe('`${xx}_${yyy}`');
+    expect(toTemplateValueJs('<<i:a>>-<<i:b>>')).toBe('`${a}-${b}`');
+    expect(toTemplateValueJs('<<i:a>><<i:b>>')).toBe('`${a}${b}`');
+    expect(toTemplateValueJs('<<i:a>>/<<i:b>>')).toBe('`${a}/${b}`');
+    expect(toTemplateValueJs('<<e:a>>_<<e:b>>'))
+        .toBe('`${(await mmtEnv_("a"))}_${(await mmtEnv_("b"))}`');
+    expect(toTemplateValueJs('<<e:a>>/<<e:b>>'))
+        .toBe('`${(await mmtEnv_("a"))}/${(await mmtEnv_("b"))}`');
+    expect(toTemplateValueJs('<<i:xx>>_<<e:host>>'))
+        .toBe('`${xx}_${(await mmtEnv_("host"))}`');
+    expect(toTemplateValueJs('{{i:xx}}_{{i:yyy}}')).toBe('`${xx}_${yyy}`');
+    expect(toTemplateValueJs('{{e:a}}_{{e:b}}'))
+        .toBe('`${(await mmtEnv_("a"))}_${(await mmtEnv_("b"))}`');
+    expect(toTemplateValueJs('{{i:a}}{{i:b}}')).toBe('`${a}${b}`');
   });
 
   it('plain YAML text stays a string template', () => {
     expect(toTemplateValueJs('hello')).toBe('`hello`');
     expect(toTemplateValueJs('hello suite')).toBe('`hello suite`');
+  });
+
+  describe('unwrapWholeValueDollarRef', () => {
+    it('accepts exactly one ${…} including property paths', () => {
+      expect(unwrapWholeValueDollarRef('${x}')).toBe('x');
+      expect(unwrapWholeValueDollarRef('${xxx.yyy}')).toBe('xxx.yyy');
+      expect(unwrapWholeValueDollarRef('${i1.body.body.xxx}')).toBe('i1.body.body.xxx');
+      expect(unwrapWholeValueDollarRef('  ${ count }  ')).toBe('count');
+      expect(unwrapWholeValueDollarRef('${}')).toBe('');
+    });
+
+    it('rejects any value with a second ${ or surrounding text', () => {
+      expect(unwrapWholeValueDollarRef('${xx}_${yyy}')).toBeUndefined();
+      expect(unwrapWholeValueDollarRef('${a}${b}')).toBeUndefined();
+      expect(unwrapWholeValueDollarRef('${a}/${b}')).toBeUndefined();
+      expect(unwrapWholeValueDollarRef('${a} ${b}')).toBeUndefined();
+      expect(unwrapWholeValueDollarRef('${a}other')).toBeUndefined();
+      expect(unwrapWholeValueDollarRef('pre${a}')).toBeUndefined();
+      expect(unwrapWholeValueDollarRef('<<i:xx>>_<<i:yyy>>')).toBeUndefined();
+      expect(unwrapWholeValueDollarRef('hello')).toBeUndefined();
+      expect(unwrapWholeValueDollarRef('')).toBeUndefined();
+    });
   });
 
   it('embeds sibling i: refs in default templates', () => {

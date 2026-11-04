@@ -13,7 +13,7 @@ import {getTestFlowStepType} from '../parse/testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
 import {isLiteralTokenValue, unwrapLiteralToken} from '../tokens/literalToken';
 import {isOmitSentinel, normalizeOmitToNull, OMIT_KEYWORD, OMIT_SENTINEL} from '../tokens/omitKeyword';
-import {replaceEnvTokensToJs, replaceOutputTokensToJs, rewriteOutputSetKey, toTemplateValueJs, toTemplateWithEnvVars} from '../tokens/variableReplacer';
+import {replaceEnvTokensToJs, replaceOutputTokensToJs, rewriteOutputSetKey, toTemplateValueJs, toTemplateWithEnvVars, unwrapWholeValueDollarRef} from '../tokens/variableReplacer';
 import * as YAML from 'yaml';
 
 function randomName(): string {
@@ -56,9 +56,9 @@ const toConditionJsExpr = (
   if (!trimmed) {
     return 'undefined';
   }
-  if (/^\$\{[\s\S]+\}$/.test(trimmed)) {
-    return normalizeRuntimeActualExpression(trimmed.slice(2, -1).trim()) ||
-        'undefined';
+  const wholeRef = unwrapWholeValueDollarRef(trimmed);
+  if (wholeRef !== undefined) {
+    return normalizeRuntimeActualExpression(wholeRef) || 'undefined';
   }
   try {
     const parsed = YAML.parse(trimmed);
@@ -499,8 +499,9 @@ const comparisonToJSfunc = (
   );
   const reportLevel = useExternalReport ? reportCfg.external : reportCfg.internal;
   const actualTrimmed = typeof actual === 'string' ? actual.trim() : '';
-  const actualRuntimeExpr = actualTrimmed && /^\$\{.+\}$/.test(actualTrimmed)
-    ? normalizeRuntimeActualExpression(actualTrimmed.slice(2, -1))
+  const actualWholeRef = actualTrimmed ? unwrapWholeValueDollarRef(actualTrimmed) : undefined;
+  const actualRuntimeExpr = actualWholeRef !== undefined
+    ? normalizeRuntimeActualExpression(actualWholeRef)
     : undefined;
   const conditionStatement = actualRuntimeExpr
     ? comparisonFromPartsToJSfunc(actualRuntimeExpr, operator, expected, knownInputNames)
@@ -552,10 +553,9 @@ export const assertToJSfunc = (
 const judgeValueToJs = (
     value: unknown, knownInputNames?: ReadonlySet<string>): string => {
   if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (/^\$\{[\s\S]+\}$/.test(trimmed)) {
-      return normalizeRuntimeActualExpression(trimmed.slice(2, -1).trim()) ||
-          'undefined';
+    const wholeRef = unwrapWholeValueDollarRef(value);
+    if (wholeRef !== undefined) {
+      return normalizeRuntimeActualExpression(wholeRef) || 'undefined';
     }
     return toTemplateValueJs(value, jsTokenOptions(knownInputNames));
   }
@@ -660,12 +660,12 @@ const expectValueToJs = (
     value: ExpectValue, knownInputNames?: ReadonlySet<string>): string => {
   const normalized = normalizeOmitToNull(value);
   if (typeof normalized === 'string') {
-    const trimmed = normalized.trim();
     // Whole-value `${…}` is a typed JS reference (same as actual / judge),
     // not a string template — preserves numbers/bools/objects from prior steps.
-    if (/^\$\{[\s\S]+\}$/.test(trimmed)) {
-      return normalizeRuntimeActualExpression(trimmed.slice(2, -1).trim()) ||
-          'undefined';
+    // Mixed `${a}_${b}` / `<<i:a>>_<<i:b>>` stay string templates.
+    const wholeRef = unwrapWholeValueDollarRef(normalized);
+    if (wholeRef !== undefined) {
+      return normalizeRuntimeActualExpression(wholeRef) || 'undefined';
     }
     return toTemplateValueJs(normalized, jsTokenOptions(knownInputNames));
   }

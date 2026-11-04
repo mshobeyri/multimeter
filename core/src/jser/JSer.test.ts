@@ -2080,6 +2080,66 @@ describe('expect on call steps', () => {
     expect(js).not.toContain('equals_(10, `${y}`)');
   });
 
+  it('keeps concatenated i:/e: and any multi-${…} value as string templates', async () => {
+    const ctx: TestContext = {
+      name: 'mixedTokenTemplates',
+      test: {
+        inputs: {xx: 'a', yyy: 'b'},
+        steps: [
+          {var: {
+            joinedInputs: '<<i:xx>>_<<i:yyy>>',
+            joinedEnv: '<<e:HOST>>_<<e:PATH>>',
+            joinedSlash: '<<i:xx>>/<<i:yyy>>',
+            joinedAdjacent: '<<i:xx>><<i:yyy>>',
+            joinedDollar: '${xx}_${yyy}',
+            joinedAdjacentDollar: '${xx}${yyy}',
+            joinedSlashDollar: '${xx}/${yyy}',
+            propPath: '${user.name}',
+          }} as any,
+          {check: {
+            actual: '${joinedInputs}',
+            operator: '==',
+            expected: '<<i:xx>>_<<i:yyy>>',
+          }} as any,
+          {check: {
+            actual: '${joinedDollar}',
+            operator: '==',
+            expected: '${xx}_${yyy}',
+          }} as any,
+          {check: {
+            actual: '${joinedAdjacentDollar}',
+            operator: '==',
+            expected: '${xx}${yyy}',
+          }} as any,
+          {check: {
+            actual: '${propPath}',
+            operator: '==',
+            expected: '${user.name}',
+          }} as any,
+        ],
+      } as any,
+      inputs: {},
+      envVars: {},
+    };
+    const js = await testToJsfunc(ctx, true);
+    expect(js).toContain('var joinedInputs = `${xx}_${yyy}`;');
+    expect(js).toContain(
+        'var joinedEnv = `${(await mmtEnv_("HOST"))}_${(await mmtEnv_("PATH"))}`;');
+    expect(js).toContain('var joinedSlash = `${xx}/${yyy}`;');
+    expect(js).toContain('var joinedAdjacent = `${xx}${yyy}`;');
+    expect(js).toContain('var joinedDollar = `${xx}_${yyy}`;');
+    expect(js).toContain('var joinedAdjacentDollar = `${xx}${yyy}`;');
+    expect(js).toContain('var joinedSlashDollar = `${xx}/${yyy}`;');
+    expect(js).not.toContain('var joinedDollar = xx}_${yyy');
+    expect(js).not.toContain('var joinedAdjacentDollar = xx}${yyy');
+    expect(js).toContain('var propPath = user.name;');
+    expect(js).toContain('equals_(joinedInputs, `${xx}_${yyy}`)');
+    expect(js).toContain('equals_(joinedDollar, `${xx}_${yyy}`)');
+    expect(js).toContain('equals_(joinedAdjacentDollar, `${xx}${yyy}`)');
+    expect(js).toContain('equals_(propPath, user.name)');
+    expect(js).not.toContain('equals_(propPath, `${user.name}`)');
+  });
+
   it('passes runtime int equality against whole-value ${x} from var', async () => {
     const events: Record<string, any>[] = [];
     const js = await rootTestToJsfunc({
