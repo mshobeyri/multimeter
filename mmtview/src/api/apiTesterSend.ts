@@ -132,8 +132,7 @@ export function buildApiTesterRunMessage(opts: {
       exampleIndex: opts.exampleIndex,
       manualInputs: opts.manualInputs,
     },
-    ...(opts.forSend && opts.resolvedRequest
-      ? { resolvedRequest: opts.resolvedRequest }
-      : {}),
+    // Send always passes a reminted snapshot; sandbox Run in Core may too.
+    ...(opts.resolvedRequest ? { resolvedRequest: opts.resolvedRequest } : {}),
   };
 }

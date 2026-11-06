@@ -1048,6 +1048,60 @@
   box-sizing: border-box;
 }
 
+/* Edit / Telescope / Sandbox — collapsed shows current; open expands horizontally. */
+.apitest-mode-drawer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.apitest-mode-drawer-current {
+  position: relative;
+  z-index: 2;
+}
+
+.apitest-mode-drawer-panel {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
+  margin-left: 0;
+  transition:
+    max-width 160ms ease,
+    opacity 120ms ease,
+    margin-left 160ms ease;
+}
+
+.apitest-mode-drawer.is-open .apitest-mode-drawer-panel {
+  max-width: 120px;
+  opacity: 1;
+  pointer-events: auto;
+  margin-left: 4px;
+}
+
+.apitest-mode-drawer.is-open .apitest-mode-drawer-current {
+  display: none;
+}
+
+.apitest-mode-custom-icon {
+  display: block;
+  width: 19.8px;
+  height: 19.8px;
+  flex-shrink: 0;
+}
+
+/* Sandbox: whole tester is dimmed and framed — scratch edits, YAML still drives. */
+.apitest-root--sandbox {
+  opacity: 0.85;
+  outline: 1px solid #c2a35a;
+  outline-offset: -1px;
+  border-radius: 4px;
+}
+
 .section-edit-toggle.apitest-header-tool-btn .codicon {
   font-size: 19.2px;
 }

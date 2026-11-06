@@ -59,7 +59,7 @@ Send sits on the URL row (next to the method+URL control). Duration, status, his
 
 | Control | What it does |
 |---|---|
-| {{btn:telescope}} | Toggle **token mirror**: show resolved input/env/current/random values (random `r:` frozen until Send or toggle again), or editable token text in request fields (including Body). **Send** always remints and freezes those values into the preview cache (and the wire request) even when the mirror is off. |
+| {{btn:telescope}} | **Request mode** drawer (click to expand): **Edit** (token text, writes YAML), **Telescope** (resolved values; edits write tokens to YAML), **Sandbox** (fully isolated clone of the current YAML — UI edits never write the file; YAML edits reset the clone; leaving drops the session with no merge). Sandbox dims the tester (85% opacity) with a thin sand-yellow frame. **Send** remints in Edit/Telescope; in Sandbox it sends the session request. |
 | {{btn:globe}} | Open the [Environment Variables](../env/ui.md) panel |
 
 ### Send

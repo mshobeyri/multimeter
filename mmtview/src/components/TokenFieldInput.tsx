@@ -139,11 +139,14 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
       : null;
   }, [hasTokens, value, valueContext, tokenCacheScope, previewEpoch]);
 
-  const showPreview = hasTokens && !tokenEdit && tokenMode === "resolved";
+  const showPreview =
+    hasTokens && !tokenEdit && (tokenMode === "resolved" || tokenMode === "sandbox");
   const displayValue = showPreview ? (preview?.text ?? "") : draft;
   const highlightSpans = showPreview
     ? (preview?.spans ?? [])
-    : findDisplayTokenCharRanges(draft, valueContext, tokenCacheScope);
+    : tokenMode === "sandbox"
+      ? []
+      : findDisplayTokenCharRanges(draft, valueContext, tokenCacheScope);
 
   // Underline layer only when blurred — while focused the native input keeps a
   // visible caret / selection like a normal field.
@@ -272,6 +275,11 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
         onChange={e => {
           const next = e.target.value;
           if (showPreview) {
+            if (tokenMode === "sandbox") {
+              // Sandbox edits the resolved literal; YAML tokens stay untouched.
+              beginTokenEdit(next);
+              return;
+            }
             // First keystroke/paste: swap to token template (key consumed).
             const template = enterEditStringBuffer(
               preview?.text ?? "",
@@ -279,6 +287,11 @@ const TokenFieldInput: React.FC<TokenFieldInputProps> = ({
               value,
             );
             beginTokenEdit(template);
+            return;
+          }
+          if (tokenMode === "sandbox") {
+            setDraft(next);
+            onDraftChange?.(next);
             return;
           }
           const caret = e.target.selectionStart ?? next.length;

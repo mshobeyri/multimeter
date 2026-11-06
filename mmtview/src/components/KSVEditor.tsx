@@ -137,7 +137,9 @@ const KSVEditor: React.FC<KSVEditorProps> = ({
   const [draft, setDraft] = useState<KvEntry[] | null>(null);
   const entries = draft ?? propEntries;
   const hideResolvedOmit =
-    hideOmittedWhenResolved && canContainToken && tokenMode === "resolved";
+    hideOmittedWhenResolved &&
+    canContainToken &&
+    (tokenMode === "resolved" || tokenMode === "sandbox");
   const duplicateIndexes = useMemo(() => findDuplicateKeyIndexes(entries), [entries]);
 
   const rowHiddenInResolved = (key: string, display: string): boolean => {

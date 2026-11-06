@@ -371,10 +371,10 @@ export async function handleRunCurrentDocument(
   const rawFile = typeof message?.rawFile === 'string' && message.rawFile.length > 0
       ? message.rawFile
       : document.getText();
-  // API Tester Send may pass the telescope snapshot so wire r:/c: match the UI.
+  // API Tester Send (and sandbox Run in Core) may pass a request snapshot so
+  // wire values match the UI without reminting from YAML.
   const requestOverride =
-      message?.history === true && message?.resolvedRequest &&
-          typeof message.resolvedRequest === 'object' ?
+      message?.resolvedRequest && typeof message.resolvedRequest === 'object' ?
         message.resolvedRequest as Record<string, unknown> :
         null;
 

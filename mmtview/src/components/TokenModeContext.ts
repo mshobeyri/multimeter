@@ -1,8 +1,9 @@
 import { createContext, useContext } from "react";
 
-export type TokenDisplayMode = "tokens" | "resolved";
+/** Edit = tokens; telescope = resolved mirror; sandbox = resolved literals (no YAML). */
+export type TokenDisplayMode = "tokens" | "resolved" | "sandbox";
 
-/** Telescope / token-mirror state for request fields. */
+/** Telescope / token-mirror / sandbox state for request fields. */
 export type TokenModeState = {
   mode: TokenDisplayMode;
   /**

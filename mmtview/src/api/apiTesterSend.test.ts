@@ -66,15 +66,26 @@ describe('buildApiTesterRunMessage', () => {
     expect(String(sendMsg.rawFile)).toContain('local.mmt.dev');
   });
 
-  it('omits history and resolvedRequest for glyph / Run in Core', () => {
+  it('omits history for Run in Core but keeps resolvedRequest when provided', () => {
+    const resolvedRequest = {
+      url: 'https://local.mmt.dev/echo',
+      method: 'get',
+    };
     const glyphMsg = buildApiTesterRunMessage({
       api,
       forSend: false,
       manualInputs: {},
-      resolvedRequest: {
-        url: 'https://local.mmt.dev/echo',
-        method: 'get',
-      } as any,
+      resolvedRequest: resolvedRequest as any,
+    });
+    expect(glyphMsg.history).toBe(false);
+    expect(glyphMsg.resolvedRequest).toEqual(resolvedRequest);
+  });
+
+  it('omits resolvedRequest when not provided', () => {
+    const glyphMsg = buildApiTesterRunMessage({
+      api,
+      forSend: false,
+      manualInputs: {},
     });
     expect(glyphMsg.history).toBe(false);
     expect(glyphMsg.resolvedRequest).toBeUndefined();

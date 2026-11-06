@@ -6,6 +6,8 @@ type SectionEditLabelProps = {
   onEdit: () => void;
   /** Tooltip when entering edit mode. */
   editTitle?: string;
+  /** Hide the pencil (e.g. sandbox read-only declarations). */
+  hideEdit?: boolean;
 };
 
 /**
@@ -17,10 +19,11 @@ export const SectionEditLabel: React.FC<SectionEditLabelProps> = ({
   editing,
   onEdit,
   editTitle = `Edit ${label}`,
+  hideEdit = false,
 }) => (
   <div className="label section-edit-label">
     <span>{label}</span>
-    {!editing ? (
+    {!editing && !hideEdit ? (
       <button
         type="button"
         className="button-icon no-shrink section-edit-toggle"

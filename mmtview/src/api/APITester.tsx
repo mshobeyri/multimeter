@@ -42,6 +42,9 @@ import VEditor from "../components/VEditor";
 import { FileContext } from "../fileContext";
 import { showEnvironmentPanel, showHistoryPanel } from "../vsAPI";
 import { useAPITesterLogic } from "./useAPITesterLogic";
+import RequestModeDrawer, {
+  type RequestViewMode,
+} from "./RequestModeDrawer";
 import {
   resolveResponseDisplayState,
   type ResponseViewMode,
@@ -73,9 +76,6 @@ import {
   restoreInputKeyFromBaseline,
   stableEqual,
 } from "../test/testUiRefresh";
-
-/** Body pane: resolved values vs editable {{…}} tokens. */
-type BodyTokenMode = "resolved" | "tokens";
 
 function KeptTabPanel({
   active,
@@ -235,8 +235,44 @@ const REQUEST_PANE_RATIO_KEY = "apitest-request-pane-ratio";
 const REQUEST_RESPONSE_LAYOUT_KEY = "apitest-request-response-layout";
 const SIDE_BY_SIDE_PANE_RATIO_KEY = "apitest-side-by-side-pane-ratio";
 const RESPONSE_TAB_KEY = "apitest-response-tab";
+const REQUEST_VIEW_MODE_KEY = "apitest-request-view-mode";
+/** @deprecated migrated to REQUEST_VIEW_MODE_KEY */
 const BODY_TOKEN_MODE_KEY = "apitest-body-token-mode";
 const DEFAULT_REQUEST_PANE_RATIO = 0.5;
+
+function readStoredRequestViewMode(): RequestViewMode {
+  const saved = localStorage.getItem(REQUEST_VIEW_MODE_KEY);
+  if (saved === "edit" || saved === "telescope" || saved === "sandbox") {
+    return saved;
+  }
+  const legacy = localStorage.getItem(BODY_TOKEN_MODE_KEY);
+  if (legacy === "resolved") {
+    return "telescope";
+  }
+  if (legacy === "tokens") {
+    return "edit";
+  }
+  return "edit";
+}
+
+function tokenDisplayModeFor(viewMode: RequestViewMode): "tokens" | "resolved" | "sandbox" {
+  if (viewMode === "edit") {
+    return "tokens";
+  }
+  if (viewMode === "sandbox") {
+    return "sandbox";
+  }
+  return "resolved";
+}
+
+function cloneApiData(source: APIData): APIData {
+  try {
+    return JSON.parse(JSON.stringify(source)) as APIData;
+  } catch {
+    return { ...source };
+  }
+}
+
 const MIN_REQUEST_PANE_RATIO = 0.15;
 const MAX_REQUEST_PANE_RATIO = 0.85;
 
@@ -271,18 +307,47 @@ function cloneInputs(source?: JSONRecord): JSONRecord {
 
 const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rightOfUrlButton, selector, initialExampleIndex }) => {
   const { mmtFilePath, yamlErrors } = useContext(FileContext);
-  const [bodyTokenMode, setBodyTokenMode] = useState<BodyTokenMode>(() => {
-    const saved = localStorage.getItem(BODY_TOKEN_MODE_KEY);
-    if (saved === "resolved" || saved === "tokens") {
-      return saved;
-    }
-    return "tokens";
-  });
+  const [requestViewMode, setRequestViewMode] = useState<RequestViewMode>(() =>
+    readStoredRequestViewMode(),
+  );
+  /**
+   * Fully isolated sandbox session: a clone of the YAML model.
+   * Edit/Telescope peer the file; Sandbox peers only this clone.
+   */
+  const [sandboxApi, setSandboxApi] = useState<APIData | null>(null);
+  /** Remount request editors when the session identity changes (enter/leave). */
+  const [requestUiEpoch, setRequestUiEpoch] = useState(0);
+  /** Runtime inputs / example selection restored when the sandbox session is dropped. */
+  const sandboxRuntimeSnapshotRef = useRef<{
+    inputs: JSONRecord;
+    exampleIdx: number;
+    dirtyKeys: string[];
+    baseline: JSONRecord;
+  } | null>(null);
+  const isSandbox = requestViewMode === "sandbox";
+  const sessionApi = isSandbox && sandboxApi ? sandboxApi : api;
+
   /** Bumps TokenFieldInput after r:/c: preview cache seed (open / telescope / Send). */
   const [tokenPreviewEpoch, setTokenPreviewEpoch] = useState(0);
   const onRuntimePreviewSeeded = useCallback(() => {
     setTokenPreviewEpoch((n) => n + 1);
   }, []);
+
+  /** Single write path: YAML file, or sandbox clone — never both. */
+  const updateSession = useCallback((patch: Partial<APIData>) => {
+    if (Object.keys(patch).length === 0) {
+      return;
+    }
+    if (requestViewMode === "sandbox") {
+      setSandboxApi((prev) => ({
+        ...(prev ?? cloneApiData(api)),
+        ...patch,
+      }));
+      return;
+    }
+    onUpdateApi?.(patch);
+  }, [requestViewMode, api, onUpdateApi]);
+
   const {
     requestData,
     responseData,
@@ -299,6 +364,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     handleAddOutputVariable,
     handleAddOutputExpression,
     prepareRequestData,
+    discardRequestScratch,
     handleSend,
     handleRunInCore,
     handleCancel,
@@ -308,11 +374,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     examples,
     isSending,
   } = useAPITesterLogic({
-    api,
-    onUpdateApi,
+    api: sessionApi,
+    onUpdateApi: updateSession,
     filePath: mmtFilePath,
     initialExampleIndex,
     onRuntimePreviewSeeded,
+    sandboxMode: isSandbox,
   });
 
   const bodyValueContext = useMemo(
@@ -322,9 +389,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const [requestBodyToolbar, setRequestBodyToolbar] = useState<BodyViewToolbarState | null>(null);
   const [responseBodyToolbar, setResponseBodyToolbar] = useState<BodyViewToolbarState | null>(null);
   const tokenModeState = useMemo(
-    () => ({ mode: bodyTokenMode, previewEpoch: tokenPreviewEpoch }),
-    [bodyTokenMode, tokenPreviewEpoch],
+    () => ({
+      mode: tokenDisplayModeFor(requestViewMode),
+      previewEpoch: tokenPreviewEpoch,
+    }),
+    [requestViewMode, tokenPreviewEpoch],
   );
+  const bodyTokenMode = requestViewMode === "edit" ? "tokens" : "resolved";
   /** Snapshot of Inputs as loaded from YAML / selected example (before manual edits). */
   const inputsBaselineRef = useRef<JSONRecord>({});
   const baselineExampleIdxRef = useRef<number | null>(null);
@@ -402,8 +473,44 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   }, [mmtFilePath]);
 
   useEffect(() => {
-    localStorage.setItem(BODY_TOKEN_MODE_KEY, bodyTokenMode);
-  }, [bodyTokenMode]);
+    // Never persist sandbox — reopen in edit/telescope only.
+    if (requestViewMode === "sandbox") {
+      return;
+    }
+    localStorage.setItem(REQUEST_VIEW_MODE_KEY, requestViewMode);
+  }, [requestViewMode]);
+
+  // Sandbox is YAML-driven: when the file model changes, replace scratch UI.
+  const sandboxYamlSyncRef = useRef(api);
+  useEffect(() => {
+    if (requestViewMode !== "sandbox") {
+      sandboxYamlSyncRef.current = api;
+      return;
+    }
+    if (sandboxYamlSyncRef.current === api) {
+      return;
+    }
+    sandboxYamlSyncRef.current = api;
+    const clone = cloneApiData(api);
+    setSandboxApi(clone);
+    setRequestUiEpoch((n) => n + 1);
+    // File wins: reset runtime inputs to the new YAML defaults.
+    const nextInputs = adoptInputsBaseline(clone.inputs || {}, -1);
+    setSelectedExampleIdx(-1);
+    setCurrentInputs(nextInputs);
+    void prepareRequestData(nextInputs, {
+      forceReset: true,
+      respectTouched: false,
+      scopes: ["all"],
+    });
+  }, [
+    api,
+    requestViewMode,
+    prepareRequestData,
+    adoptInputsBaseline,
+    setSelectedExampleIdx,
+    setCurrentInputs,
+  ]);
 
   // Based on the displayed URL (not resolved inputs/env)
   const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined
@@ -416,34 +523,34 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const isGrpc = (requestData?.protocol ?? api.protocol) === "grpc";
   const requestProtocol = requestData?.protocol || api.protocol;
   const peerUrl = useMemo(
-    () => yamlValueToInputBoxWithTokens(api.url, true, true),
-    [api.url],
+    () => yamlValueToInputBoxWithTokens(sessionApi.url, true, true),
+    [sessionApi.url],
   );
-  // Tokens mode: authored query (incl. omit). Resolved: post-strip requestData
-  // so omitted params disappear from the URL the same way they leave Send.
+  // Tokens mode: authored query (incl. omit). Resolved/sandbox: post-strip
+  // requestData so omitted params disappear from the URL the same way they leave Send.
   const urlQuery = useMemo(() => {
     if (bodyTokenMode === "resolved") {
       if (requestData?.query && typeof requestData.query === "object") {
         return queryForUrlBar(requestData.query as Record<string, unknown>);
       }
       const filtered: Record<string, unknown> = {};
-      for (const [key, value] of Object.entries(api.query ?? {})) {
+      for (const [key, value] of Object.entries(sessionApi.query ?? {})) {
         if (!leafResolvesToOmit(value, bodyValueContext)) {
           filtered[key] = value;
         }
       }
       return queryForUrlBar(filtered);
     }
-    return queryForUrlBar(api.query as Record<string, unknown> | undefined);
+    return queryForUrlBar(sessionApi.query as Record<string, unknown> | undefined);
   }, [
-    api.query,
+    sessionApi.query,
     bodyTokenMode,
     bodyValueContext,
     requestData?.query,
   ]);
   const peerGraphqlOperation = useMemo(
-    () => yamlValueToInputBoxWithTokens(api.graphql?.operation, true, true),
-    [api.graphql?.operation],
+    () => yamlValueToInputBoxWithTokens(sessionApi.graphql?.operation, true, true),
+    [sessionApi.graphql?.operation],
   );
   /** Declared output keys (Examples pane); values keep runtime types for VEditor. */
   const outputKeys = useMemo(
@@ -502,22 +609,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   }, [apiTestResults, outputKeys]);
 
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(
-    requestData?.protocol || api.protocol,
-    api.url,
+    requestData?.protocol || sessionApi.protocol,
+    sessionApi.url,
   );
   const methodOrProtocolValue = (effectiveProtocol === "ws" || effectiveProtocol === "graphql" || effectiveProtocol === "grpc")
     ? `protocol:${effectiveProtocol}`
     : `method:${resolveApiHttpMethod(
-        requestData?.method || api.method,
-        requestData?.body ?? api.body).toLowerCase()}`;
+        requestData?.method || sessionApi.method,
+        requestData?.body ?? sessionApi.body).toLowerCase()}`;
   const methodOrProtocolKey = methodOrProtocolValue.startsWith("protocol:")
     ? methodOrProtocolValue.slice("protocol:".length)
     : methodOrProtocolValue.slice("method:".length);
-  const currentRequestFormat = requestFormat(api.format);
-  const currentResponseFormat = responseFormat(api.format);
+  const currentRequestFormat = requestFormat(sessionApi.format);
+  const currentResponseFormat = responseFormat(sessionApi.format);
   const resolvedRequestFormat = resolveRequestFormat(
     currentRequestFormat,
-    api.headers as Record<string, string> | undefined,
+    sessionApi.headers as Record<string, string> | undefined,
     methodOrProtocolValue.startsWith("method:") ? methodOrProtocolKey : undefined,
   );
   // Resolved preview shows substituted i:/e:/r:/c: values. Token mode uses a
@@ -526,33 +633,34 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   // After Send, requestData holds the reminted snapshot that was sent.
   const requestBodyDisplay = useMemo(() => {
     return displayRequestBody(
-      requestData?.body ?? api.body ?? "",
+      requestData?.body ?? sessionApi.body ?? "",
       resolvedRequestFormat,
       { valueContext: bodyValueContext },
     );
   }, [
     requestData?.body,
-    api.body,
+    sessionApi.body,
     resolvedRequestFormat,
     bodyValueContext,
   ]);
 
   const onUrlChange = useCallback((newUrl: string) => {
-    onUpdateApi?.({ url: stringFieldToYamlWithLiveTokens(newUrl) });
-  }, [onUpdateApi]);
+    const next = isSandbox ? newUrl : stringFieldToYamlWithLiveTokens(newUrl);
+    updateSession({ url: next });
+  }, [updateSession, isSandbox]);
 
   // Query, cookies, and headers keep YAML types. The URL bar is a string view
   // of that same query.
   const onQueryChange = useCallback((query: JSONRecord) => {
-    onUpdateApi?.({ query: query as APIData["query"] });
-  }, [onUpdateApi]);
+    updateSession({ query: query as APIData["query"] });
+  }, [updateSession]);
 
   const onUrlQueryChange = useCallback((query: Record<string, string>) => {
     const next = queryFromUrlBar(query);
     // Resolved URL omits omit-params; put authored omit keys back so a URL
-    // edit does not delete them from YAML.
-    if (bodyTokenMode === "resolved") {
-      for (const [key, value] of Object.entries(api.query ?? {})) {
+    // edit does not delete them from YAML (skip in sandbox — literals only).
+    if (bodyTokenMode === "resolved" && !isSandbox) {
+      for (const [key, value] of Object.entries(sessionApi.query ?? {})) {
         if (leafResolvesToOmit(value, bodyValueContext) &&
             !Object.prototype.hasOwnProperty.call(next, key)) {
           next[key] = value as JSONValue;
@@ -560,15 +668,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       }
     }
     onQueryChange(next);
-  }, [api.query, bodyTokenMode, bodyValueContext, onQueryChange]);
+  }, [sessionApi.query, bodyTokenMode, bodyValueContext, isSandbox, onQueryChange]);
 
   const onHeadersChange = useCallback((headers: JSONRecord) => {
-    onUpdateApi?.({ headers: headers as APIData["headers"] });
-  }, [onUpdateApi]);
+    updateSession({ headers: headers as APIData["headers"] });
+  }, [updateSession]);
 
   const onCookiesChange = useCallback((cookies: JSONRecord) => {
-    onUpdateApi?.({ cookies: cookies as APIData["cookies"] });
-  }, [onUpdateApi]);
+    updateSession({ cookies: cookies as APIData["cookies"] });
+  }, [updateSession]);
 
   const [responseViewMode, setResponseViewModeState] = useState<ResponseViewMode>(() => {
     const saved = localStorage.getItem("apitest-response-view-mode");
@@ -768,7 +876,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const handleMethodOrProtocolChange = (raw: string) => {
     if (raw.startsWith("protocol:")) {
       const protocol = raw.slice("protocol:".length) as Protocol;
-      onUpdateApi?.({ protocol });
+      updateSession({ protocol });
       if (protocol === "graphql" || protocol === "grpc") {
         setEditorTab(protocol);
       } else if (editorTab === "graphql" || editorTab === "grpc") {
@@ -778,7 +886,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     if (raw.startsWith("method:")) {
       const method = raw.slice("method:".length) as Method;
-      onUpdateApi?.({ method, protocol: "http" });
+      updateSession({ method, protocol: "http" });
       if (editorTab === "graphql" || editorTab === "grpc") {
         setEditorTab("body");
       }
@@ -811,13 +919,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       currentFormat: api.format,
       formatTouched: false,
     });
-    onUpdateApi?.({ format: result.format });
+    updateSession({ format: result.format });
     // text bodies are always plain storage.
-    if (side === "request" && format === "text" && isStructuredYamlBody(api.body)) {
-      const asText = formatBody("text", api.body ?? "");
+    if (side === "request" && format === "text" && isStructuredYamlBody(sessionApi.body)) {
+      const asText = formatBody("text", sessionApi.body ?? "");
       setBodyYamlEncodedManual(false);
       setBodyYamlEncodeError(false);
-      onUpdateApi?.({ body: valueForYamlSave(asText) as APIData["body"] });
+      updateSession({ body: valueForYamlSave(asText) as APIData["body"] });
     }
   };
 
@@ -834,14 +942,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const [bodyYamlEncodedManual, setBodyYamlEncodedManual] = useState(true);
   const skipBodySyncRef = useRef(false);
   const resolvedBodyHintRef = useRef<unknown>(undefined);
-  const bodyEditYamlEncoded = isStructuredYamlBody(api.body);
+  const bodyEditYamlEncoded = isStructuredYamlBody(sessionApi.body);
 
   useEffect(() => {
-    const structured = requestData?.body ?? api.body;
+    const structured = requestData?.body ?? sessionApi.body;
     if (structured != null && typeof structured !== "string") {
       resolvedBodyHintRef.current = structured;
     }
-  }, [requestData?.body, api.body]);
+  }, [requestData?.body, sessionApi.body]);
 
   const tokensTextFromYaml = useCallback(() => {
     const resolvedHint = typeof requestData?.body === "string"
@@ -849,12 +957,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       : (requestData?.body ?? resolvedBodyHintRef.current);
     // Peer: YAML → tokens (never from resolved values).
     return yamlBodyToTokensText(
-      api.body,
+      sessionApi.body,
       resolvedRequestFormat,
       bodyValueContext,
       resolvedHint,
     );
-  }, [api.body, requestData?.body, resolvedRequestFormat, bodyValueContext]);
+  }, [sessionApi.body, requestData?.body, resolvedRequestFormat, bodyValueContext]);
 
   /** Packable body text for storage writes — always token form, never resolved values. */
   const bodyTextForStorage = useCallback(() => {
@@ -874,7 +982,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     // Remount once when entering tokens (fresh Ctrl+Z stack) — never on YAML echo.
     setBodyEditSession((n) => n + 1);
     setBodyYamlEncodeError(false);
-    setBodyTokenMode("tokens");
+    setRequestViewMode("edit");
   }, [tokensTextFromYaml]);
 
   /**
@@ -895,14 +1003,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     ) as APIData["body"];
     const encodedOk = preferEncoded && isStructuredYamlBody(nextBody);
     setBodyYamlEncodeError(preferEncoded && !encodedOk);
-    onUpdateApi?.({ body: nextBody });
+    updateSession({ body: nextBody });
     return !preferEncoded || encodedOk;
-  }, [onUpdateApi, resolvedRequestFormat]);
+  }, [updateSession, resolvedRequestFormat]);
 
   const handleBodyEditChange = useCallback((val: string) => {
     setBodyEditDraft(val);
     writeBodyStorage(val, bodyYamlEncodedManual);
   }, [bodyYamlEncodedManual, writeBodyStorage]);
+
+  const handleSandboxBodyChange = useCallback((val: string) => {
+    updateSession({ body: val });
+  }, [updateSession]);
 
   /** Raw/YAML-encoded menu choice — independent of resolved/token display. */
   const handleBodyEditYamlEncoded = useCallback((
@@ -916,7 +1028,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     const currentText = bodyTokenMode === "tokens" ? bodyEditDraft : bodyTextForStorage();
     const selection = selectBodyFormatStorage({
-      body: api.body,
+      body: sessionApi.body,
       currentText,
       sourceFormat: resolvedRequestFormat,
       targetFormat: format,
@@ -931,23 +1043,23 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     if (selection.bodyChanged) {
       skipBodySyncRef.current = true;
-      onUpdateApi?.({ body: selection.body as APIData["body"] });
+      updateSession({ body: selection.body as APIData["body"] });
     }
   }, [
-    api.body,
+    sessionApi.body,
     bodyTokenMode,
     bodyEditDraft,
     bodyTextForStorage,
     resolvedRequestFormat,
     bodyValueContext,
-    onUpdateApi,
+    updateSession,
   ]);
 
   // External YAML edits (left pane) while in tokens mode → refresh draft only.
   // Do not bump bodyEditSession (that remounts Monaco and feels like a reload).
   // Do not touch bodyYamlEncodedManual — preference survives temporary plain fallback.
   useEffect(() => {
-    if (bodyTokenMode !== "tokens") {
+    if (bodyTokenMode !== "tokens" || isSandbox) {
       return;
     }
     if (skipBodySyncRef.current) {
@@ -958,7 +1070,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     setBodyEditDraft((prev) => (
       normalizeNewlines(prev) === normalizeNewlines(template) ? prev : template
     ));
-  }, [api.body, bodyTokenMode, tokensTextFromYaml]);
+  }, [sessionApi.body, bodyTokenMode, isSandbox, tokensTextFromYaml]);
 
   // Prefer-encoded: when body is temporarily plain (invalid mid-edit or YAML tweak)
   // but the text packs again, snap back to structured storage.
@@ -970,25 +1082,34 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     if (!bodyYamlEncodedManual) {
       return;
     }
-    if (isStructuredYamlBody(api.body)) {
+    if (isSandbox) {
+      return;
+    }
+    if (isStructuredYamlBody(sessionApi.body)) {
       setBodyYamlEncodeError(false);
       return;
     }
-    if (typeof api.body !== "string" || api.body.trim() === "") {
+    if (typeof sessionApi.body !== "string" || sessionApi.body.trim() === "") {
       return;
     }
     if (skipBodySyncRef.current) {
       return;
     }
-    const packed = packBodyAsYamlEncoded(api.body, resolvedRequestFormat);
+    const packed = packBodyAsYamlEncoded(sessionApi.body, resolvedRequestFormat);
     if (packed == null) {
       setBodyYamlEncodeError(true);
       return;
     }
     skipBodySyncRef.current = true;
     setBodyYamlEncodeError(false);
-    onUpdateApi?.({ body: packed as APIData["body"] });
-  }, [api.body, bodyYamlEncodedManual, resolvedRequestFormat, onUpdateApi]);
+    updateSession({ body: packed as APIData["body"] });
+  }, [
+    sessionApi.body,
+    bodyYamlEncodedManual,
+    resolvedRequestFormat,
+    updateSession,
+    isSandbox,
+  ]);
 
   // If a self-write did not change api.body, the sync effect never runs — clear skip.
   useEffect(() => {
@@ -999,45 +1120,135 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       skipBodySyncRef.current = false;
     }, 0);
     return () => clearTimeout(t);
-  }, [api.body, bodyEditDraft]);
+  }, [sessionApi.body, bodyEditDraft]);
 
-  const handleBodyTokenModeChange = useCallback((mode: BodyTokenMode) => {
-    if (mode === bodyTokenMode) {
-      return;
-    }
-    if (mode === "tokens") {
-      openBodyTokens();
-      return;
-    }
-    // Flush draft so resolved view / Send see the latest tokens.
-    writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
-    // Fresh coherent r:/c: for body + field preview (frozen until next refresh/Send).
-    prepareRequestData(undefined, {
+  const enterSandbox = useCallback(async (source: APIData) => {
+    const clone = cloneApiData(source);
+    sandboxRuntimeSnapshotRef.current = {
+      inputs: cloneInputs(currentInputs),
+      exampleIdx: selectedExampleIdx,
+      dirtyKeys: Array.from(dirtyInputKeys),
+      baseline: cloneInputs(inputsBaselineRef.current),
+    };
+    flushSync(() => {
+      setSandboxApi(clone);
+      setRequestViewMode("sandbox");
+      setRequestUiEpoch((n) => n + 1);
+      setEditTitle(false);
+      setEditTags(false);
+      setEditDescription(false);
+      setEditInputsDecl(false);
+      setEditOutputsDecl(false);
+      setEditSetenvDecl(false);
+    });
+    // Align sync ref so the YAML-watch effect does not immediately re-seed.
+    sandboxYamlSyncRef.current = source;
+    await prepareRequestData(undefined, {
+      forceReset: true,
       respectTouched: false,
       scopes: ["all"],
       refreshRuntimeTokens: true,
     });
-    setBodyTokenMode("resolved");
+  }, [prepareRequestData, currentInputs, selectedExampleIdx, dirtyInputKeys]);
+
+  const leaveSandbox = useCallback(async (next: "edit" | "telescope") => {
+    // Drop the whole isolated session — no merge back into YAML.
+    const snap = sandboxRuntimeSnapshotRef.current;
+    sandboxRuntimeSnapshotRef.current = null;
+    flushSync(() => {
+      setSandboxApi(null);
+      setRequestViewMode(next);
+      setRequestUiEpoch((n) => n + 1);
+    });
+    // Re-apply pre-sandbox runtime inputs AFTER the session switch. The hook's
+    // api-change effect may have already reset inputs to YAML defaults.
+    if (snap) {
+      flushSync(() => {
+        setSelectedExampleIdx(snap.exampleIdx);
+        setCurrentInputs(cloneInputs(snap.inputs));
+        setDirtyInputKeys(new Set(snap.dirtyKeys));
+        inputsBaselineRef.current = cloneInputs(snap.baseline);
+        baselineExampleIdxRef.current = snap.exampleIdx;
+      });
+    }
+    discardRequestScratch();
+    await prepareRequestData(
+      snap ? cloneInputs(snap.inputs) : undefined,
+      {
+        forceReset: true,
+        respectTouched: false,
+        scopes: ["all"],
+        refreshRuntimeTokens: true,
+      },
+    );
+    if (next === "edit") {
+      openBodyTokens();
+    }
   }, [
-    bodyTokenMode,
+    discardRequestScratch,
+    prepareRequestData,
+    openBodyTokens,
+    setSelectedExampleIdx,
+    setCurrentInputs,
+  ]);
+
+  const handleRequestViewModeChange = useCallback(async (mode: RequestViewMode) => {
+    if (mode === requestViewMode) {
+      return;
+    }
+
+    if (requestViewMode === "sandbox" && mode !== "sandbox") {
+      await leaveSandbox(mode === "edit" ? "edit" : "telescope");
+      return;
+    }
+
+    if (mode === "edit") {
+      openBodyTokens();
+      return;
+    }
+
+    if (mode === "telescope") {
+      if (requestViewMode === "edit") {
+        writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
+      }
+      await prepareRequestData(undefined, {
+        respectTouched: false,
+        scopes: ["all"],
+        refreshRuntimeTokens: true,
+      });
+      setRequestViewMode("telescope");
+      return;
+    }
+
+    // Enter sandbox: fresh clone of the current YAML buffer.
+    if (requestViewMode === "edit") {
+      writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
+    }
+    await enterSandbox(api);
+  }, [
+    requestViewMode,
     openBodyTokens,
     writeBodyStorage,
     bodyEditDraft,
     bodyYamlEncodedManual,
     prepareRequestData,
+    leaveSandbox,
+    enterSandbox,
+    api,
   ]);
 
   const sendWithResolvedBody = useCallback(async () => {
-    if (bodyTokenMode === "tokens") {
+    if (bodyTokenMode === "tokens" && !isSandbox) {
       // Commit token draft into YAML before Send (Send runs the YAML model).
       flushSync(() => {
         writeBodyStorage(bodyEditDraft, bodyYamlEncodedManual);
       });
     }
-    // Send remints r:/c: into the snapshot, then sends those values.
+    // Send remints r:/c: (or uses sandbox requestData) then sends those values.
     await handleSend();
   }, [
     bodyTokenMode,
+    isSandbox,
     bodyEditDraft,
     bodyYamlEncodedManual,
     writeBodyStorage,
@@ -1167,7 +1378,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         }
         return updated;
       });
-      onUpdateApi?.({ examples: nextExamples });
+      updateSession({ examples: nextExamples });
       return;
     }
     const match = findMatchingExampleIndex(examples, data);
@@ -1221,8 +1432,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       }
     }
 
-    const updatedExamples = [...(api.examples || []), newExample];
-    onUpdateApi?.({ examples: updatedExamples });
+    const updatedExamples = [...(sessionApi.examples || []), newExample];
+    updateSession({ examples: updatedExamples });
     setSelectedExampleIdx(updatedExamples.length - 1);
   };
 
@@ -1293,14 +1504,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
   return (
     <TokenModeContext.Provider value={tokenModeState}>
-    <div className={`apitest-root${selector ? " apitest-root--source" : ""}${
-      requestResponseLayout === "side-by-side" ? " apitest-root--side-by-side" : ""
-    }`}>
+    <div className={[
+      "apitest-root",
+      selector ? "apitest-root--source" : "",
+      requestResponseLayout === "side-by-side" ? "apitest-root--side-by-side" : "",
+      isSandbox ? "apitest-root--sandbox" : "",
+    ].filter(Boolean).join(" ")}>
       {/* ── Fixed header: URL bar + Send ── */}
       <div className="apitest-fixed-header">
       <div className="apitest-url-row" style={methodChromeVars as React.CSSProperties}>
         {selector}
         <MethodUrlBar
+          key={`url-${requestUiEpoch}`}
           methodValue={methodOrProtocolValue}
           onMethodChange={handleMethodOrProtocolChange}
           url={peerUrl}
@@ -1389,21 +1604,10 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           className={`apitest-tabs-tools-divider${shouldShowBody() ? "" : " is-hidden"}`}
           aria-hidden
         />
-        <button
-            type="button"
-            className={`button-icon no-shrink section-edit-toggle apitest-header-tool-btn${bodyTokenMode === "resolved" ? " is-active" : ""}`}
-            aria-label={bodyTokenMode === "resolved" ? "Show tokens" : "Show resolved values"}
-            aria-pressed={bodyTokenMode === "resolved"}
-            title={bodyTokenMode === "resolved"
-              ? "Show tokens"
-              : "Show resolved input/env/current/random values"}
-            onMouseDown={event => event.preventDefault()}
-            onClick={() => handleBodyTokenModeChange(
-              bodyTokenMode === "resolved" ? "tokens" : "resolved",
-            )}
-          >
-            <span className="codicon codicon-telescope" aria-hidden />
-          </button>
+        <RequestModeDrawer
+          mode={requestViewMode}
+          onChange={(mode) => { void handleRequestViewModeChange(mode); }}
+        />
         <button
           type="button"
           className="button-icon no-shrink section-edit-toggle apitest-header-tool-btn"
@@ -1424,20 +1628,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               label="Title"
               editing={editTitle}
               onEdit={() => setEditTitle(true)}
+              hideEdit={isSandbox}
             />
-            {editTitle ? (
+            {editTitle && !isSandbox ? (
               <div>
                 <StableTextInput
-                  value={api.title || ""}
-                  onChange={next => onUpdateApi?.({ title: next })}
+                  value={sessionApi.title || ""}
+                  onChange={next => updateSession({ title: next })}
                   placeholder="title"
-                  disabled={!onUpdateApi}
+                  disabled={!onUpdateApi && !isSandbox}
                 />
                 <SectionEditDone onDone={() => setEditTitle(false)} />
               </div>
             ) : (
-              <div className={api.title ? "apitest-doc-plain" : "apitest-empty"}>
-                {api.title || "No title"}
+              <div className={sessionApi.title ? "apitest-doc-plain" : "apitest-empty"}>
+                {sessionApi.title || "No title"}
               </div>
             )}
           </div>
@@ -1447,19 +1652,20 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               label="Tags"
               editing={editTags}
               onEdit={() => setEditTags(true)}
+              hideEdit={isSandbox}
             />
-            {editTags ? (
+            {editTags && !isSandbox ? (
               <div>
                 <SearchableTagInput
-                  tags={safeList(api.tags)}
-                  onChange={tags => onUpdateApi?.({ tags })}
+                  tags={safeList(sessionApi.tags)}
+                  onChange={tags => updateSession({ tags })}
                   suggestions={["security", "sessionless", "api", "user", "admin"]}
                 />
                 <SectionEditDone onDone={() => setEditTags(false)} />
               </div>
-            ) : safeList(api.tags).length > 0 ? (
+            ) : safeList(sessionApi.tags).length > 0 ? (
               <div className="apitest-doc-plain">
-                {safeList(api.tags).join(", ")}
+                {safeList(sessionApi.tags).join(", ")}
               </div>
             ) : (
               <div className="apitest-empty">No tags</div>
@@ -1471,20 +1677,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               label="Description"
               editing={editDescription}
               onEdit={() => setEditDescription(true)}
+              hideEdit={isSandbox}
             />
-            {editDescription ? (
+            {editDescription && !isSandbox ? (
               <div>
                 <DescriptionEditor
-                  value={api.description || ""}
-                  onChange={value => onUpdateApi?.({ description: value })}
+                  value={sessionApi.description || ""}
+                  onChange={value => updateSession({ description: value })}
                 />
                 <SectionEditDone onDone={() => setEditDescription(false)} />
               </div>
-            ) : api.description ? (
+            ) : sessionApi.description ? (
               <MdViewer
-                description={api.description}
-                inputs={api.inputs}
-                outputs={api.outputs}
+                description={sessionApi.description}
+                inputs={sessionApi.inputs}
+                outputs={sessionApi.outputs}
                 showDescriptionLabel={false}
               />
             ) : (
@@ -1498,10 +1705,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       {editorTab === "settings" && (
         <KeptTabPanel key="settings" active>
         <div className="apitest-section apitest-section--settings">
-          {onUpdateApi ? (
-            <ApiSettingsEditor api={api} update={onUpdateApi} />
+          {onUpdateApi && !isSandbox ? (
+            <ApiSettingsEditor
+              key={`settings-${requestUiEpoch}`}
+              api={sessionApi}
+              update={updateSession}
+            />
           ) : (
-            <div className="apitest-empty">Settings are read-only.</div>
+            <div className="apitest-empty">
+              {isSandbox ? "Settings are not editable in sandbox." : "Settings are read-only."}
+            </div>
           )}
         </div>
         </KeptTabPanel>
@@ -1510,14 +1723,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       {editorTab === "auth" && (
         <KeptTabPanel key="auth" active>
         <div className="apitest-section apitest-section--auth">
-          {onUpdateApi ? (
+          {onUpdateApi && !isSandbox ? (
             <ApiAuthEditor
-              api={api}
-              update={onUpdateApi}
+              key={`auth-${requestUiEpoch}`}
+              api={sessionApi}
+              update={updateSession}
               valueContext={bodyValueContext}
             />
           ) : (
-            <div className="apitest-empty">Auth is read-only.</div>
+            <div className="apitest-empty">
+              {isSandbox ? "Auth is not editable in sandbox." : "Auth is read-only."}
+            </div>
           )}
         </div>
         </KeptTabPanel>
@@ -1527,12 +1743,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         <KeptTabPanel key="params" active={editorTab === "params"}>
         <div className="apitest-section">
         <KSVEditor
+          key={`query-${requestUiEpoch}`}
           label=""
-          value={api.query}
+          value={sessionApi.query}
           onChange={onQueryChange}
           canContainToken
           typedValues
-          liveAngleTokens
+          liveAngleTokens={!isSandbox}
           valueContext={bodyValueContext}
           tokenCacheNamespace="query"
           hideOmittedWhenResolved
@@ -1545,12 +1762,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         <KeptTabPanel key="headers" active={editorTab === "headers"}>
         <div className="apitest-section">
         <KSVEditor
+          key={`headers-${requestUiEpoch}`}
           label=""
-          value={api.headers}
+          value={sessionApi.headers}
           onChange={onHeadersChange}
           canContainToken
           typedValues
-          liveAngleTokens
+          liveAngleTokens={!isSandbox}
           valueContext={bodyValueContext}
           tokenCacheNamespace="headers"
           hideOmittedWhenResolved
@@ -1563,12 +1781,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         <KeptTabPanel key="cookies" active={editorTab === "cookies"}>
         <div className="apitest-section">
         <KSVEditor
+          key={`cookies-${requestUiEpoch}`}
           label=""
-          value={api.cookies}
+          value={sessionApi.cookies}
           onChange={onCookiesChange}
           canContainToken
           typedValues
-          liveAngleTokens
+          liveAngleTokens={!isSandbox}
           valueContext={bodyValueContext}
           tokenCacheNamespace="cookies"
           hideOmittedWhenResolved
@@ -1594,7 +1813,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 {resolvedRequestFormat === "binary" ? (
                   <FilePickerInput
                     value={yamlValueToInputBoxWithTokens(
-                      typeof api.body === "string" ? api.body : "",
+                      typeof sessionApi.body === "string" ? sessionApi.body : "",
                       true,
                       true,
                     )}
@@ -1603,13 +1822,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     placeholder="Relative path to binary file"
                     canContainToken
                     valueContext={bodyValueContext}
-                    onChange={val => onUpdateApi?.({ body: stringFieldToYamlWithLiveTokens(val) })}
-                    onEnterPressed={val => onUpdateApi?.({ body: stringFieldToYamlWithLiveTokens(val) })}
+                    onChange={val => updateSession({
+                      body: isSandbox ? val : stringFieldToYamlWithLiveTokens(val),
+                    })}
+                    onEnterPressed={val => updateSession({
+                      body: isSandbox ? val : stringFieldToYamlWithLiveTokens(val),
+                    })}
                   />
                 ) : resolvedRequestFormat === "multipart" ? (
                   <MultipartPartsEditor
-                    value={api.body}
-                    onChange={parts => onUpdateApi?.({ body: parts as APIData["body"] })}
+                    value={sessionApi.body}
+                    onChange={parts => updateSession({ body: parts as APIData["body"] })}
                     canContainToken
                     valueContext={bodyValueContext}
                   />
@@ -1624,21 +1847,32 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     valueContext={bodyValueContext}
                     // Pair YAML tokens with last Send/open snapshot so hover
                     // tips match the wire even while telescope is off.
-                    tokenSource={api.body}
+                    tokenSource={sessionApi.body}
                     resolvedBody={requestData?.body}
+                    onToolbarChange={setRequestBodyToolbar}
+                  />
+                ) : isSandbox ? (
+                  <BodyView
+                    key={`body-sandbox-${requestUiEpoch}`}
+                    value={requestBodyDisplay}
+                    format={resolvedRequestFormat}
+                    mode="live"
+                    onChange={handleSandboxBodyChange}
+                    valueContext={bodyValueContext}
+                    resolvedBody={requestData?.body ?? sessionApi.body}
                     onToolbarChange={setRequestBodyToolbar}
                   />
                 ) : (
                   <BodyView
-                    key="body-resolved"
+                    key={`body-resolved-${requestUiEpoch}`}
                     value={requestBodyDisplay}
                     format={resolvedRequestFormat}
                     mode="live"
                     onStartEdit={openBodyTokens}
                     valueContext={bodyValueContext}
                     tokenTemplate={tokensTextFromYaml()}
-                    tokenSource={api.body}
-                    resolvedBody={requestData?.body ?? api.body}
+                    tokenSource={sessionApi.body}
+                    resolvedBody={requestData?.body ?? sessionApi.body}
                     onToolbarChange={setRequestBodyToolbar}
                   />
                 )}              </div>
@@ -1656,32 +1890,36 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             </div>
             <div className="apitest-body-wrapper">
               <BodyView
+                key={`graphql-op-${requestUiEpoch}`}
                 value={peerGraphqlOperation}
                 format="graphql"
                 mode="live"
                 onChange={val => {
-                  onUpdateApi?.({
+                  updateSession({
                     graphql: {
-                      operation: stringFieldToYamlWithLiveTokens(val),
-                      operationName: api.graphql?.operationName,
-                      variables: api.graphql?.variables,
+                      operation: isSandbox
+                        ? val
+                        : stringFieldToYamlWithLiveTokens(val),
+                      operationName: sessionApi.graphql?.operationName,
+                      variables: sessionApi.graphql?.variables,
                     },
                   });
                 }}
               />
             </div>
             <KSVEditor
+              key={`graphql-vars-${requestUiEpoch}`}
               label="Variables"
-              value={api.graphql?.variables}
+              value={sessionApi.graphql?.variables}
               canContainToken
               typedValues
-              liveAngleTokens
+              liveAngleTokens={!isSandbox}
               valueContext={bodyValueContext}
               onChange={variables => {
-                onUpdateApi?.({
+                updateSession({
                   graphql: {
-                    operation: api.graphql?.operation ?? "",
-                    operationName: api.graphql?.operationName,
+                    operation: sessionApi.graphql?.operation ?? "",
+                    operationName: sessionApi.graphql?.operationName,
                     variables,
                   },
                 });
@@ -1700,15 +1938,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 <StableTextInput
                   type="text"
                   placeholder="package.ServiceName"
-                  value={api.grpc?.service || ""}
+                  value={sessionApi.grpc?.service || ""}
                   onChange={next => {
-                    onUpdateApi?.({
+                    updateSession({
                       grpc: {
-                        proto: api.grpc?.proto,
+                        proto: sessionApi.grpc?.proto,
                         service: next,
-                        method: api.grpc?.method ?? "",
-                        message: api.grpc?.message,
-                        stream: api.grpc?.stream,
+                        method: sessionApi.grpc?.method ?? "",
+                        message: sessionApi.grpc?.message,
+                        stream: sessionApi.grpc?.stream,
                       },
                     });
                   }}
@@ -1720,15 +1958,15 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 <StableTextInput
                   type="text"
                   placeholder="MethodName"
-                  value={api.grpc?.method || ""}
+                  value={sessionApi.grpc?.method || ""}
                   onChange={next => {
-                    onUpdateApi?.({
+                    updateSession({
                       grpc: {
-                        proto: api.grpc?.proto,
-                        service: api.grpc?.service ?? "",
+                        proto: sessionApi.grpc?.proto,
+                        service: sessionApi.grpc?.service ?? "",
                         method: next,
-                        message: api.grpc?.message,
-                        stream: api.grpc?.stream,
+                        message: sessionApi.grpc?.message,
+                        stream: sessionApi.grpc?.stream,
                       },
                     });
                   }}
@@ -1737,20 +1975,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               </div>
             </div>
             <KSVEditor
+              key={`grpc-msg-${requestUiEpoch}`}
               label="Message"
-              value={api.grpc?.message as JSONRecord | undefined}
+              value={sessionApi.grpc?.message as JSONRecord | undefined}
               canContainToken
               typedValues
-              liveAngleTokens
+              liveAngleTokens={!isSandbox}
               valueContext={bodyValueContext}
               onChange={msg => {
-                onUpdateApi?.({
+                updateSession({
                   grpc: {
-                    proto: api.grpc?.proto,
-                    service: api.grpc?.service ?? "",
-                    method: api.grpc?.method ?? "",
+                    proto: sessionApi.grpc?.proto,
+                    service: sessionApi.grpc?.service ?? "",
+                    method: sessionApi.grpc?.method ?? "",
                     message: msg,
-                    stream: api.grpc?.stream,
+                    stream: sessionApi.grpc?.stream,
                   },
                 });
               }}
@@ -1806,28 +2045,34 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               label="Inputs"
               editing={editInputsDecl}
               onEdit={() => setEditInputsDecl(true)}
+              hideEdit={isSandbox}
             />
-            {editInputsDecl ? (
+            {editInputsDecl && !isSandbox ? (
               <div>
                 <KVEditor
                   label=""
-                  value={api.inputs}
-                  onChange={kv => onUpdateApi?.({ inputs: kv })}
+                  value={sessionApi.inputs}
+                  onChange={kv => updateSession({ inputs: kv })}
                   keyPlaceholder="name"
                   valuePlaceholder="value"
                   canContainToken
                   liveAngleTokens
                   valueContext={bodyValueContext}
-                  disabled={!onUpdateApi}
+                  disabled={!onUpdateApi && !isSandbox}
                 />
                 <SectionEditDone onDone={() => setEditInputsDecl(false)} />
               </div>
             ) : (
               <VEditor
+                key={`inputs-${requestUiEpoch}`}
                 label=""
                 value={currentInputs}
                 onChange={handleInputsChange}
-                keyOptions={typeof api.inputs === "object" ? Object.keys(api.inputs || {}) : []}
+                keyOptions={
+                  typeof sessionApi.inputs === "object"
+                    ? Object.keys(sessionApi.inputs || {})
+                    : []
+                }
                 inputConstraints={inputConstraints}
                 deletable={false}
                 canContainToken
@@ -1863,7 +2108,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     }
                     return updated;
                   });
-                  onUpdateApi?.({ examples: nextExamples });
+                  updateSession({ examples: nextExamples });
                 }}
               />
             ) : null}
@@ -1985,13 +2230,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               label="Outputs"
               editing={editOutputsDecl}
               onEdit={() => setEditOutputsDecl(true)}
+              hideEdit={isSandbox}
             />
-            {editOutputsDecl ? (
+            {editOutputsDecl && !isSandbox ? (
               <div>
                 <KSVEditor
                   label=""
                   value={api.outputs}
-                  onChange={kv => onUpdateApi?.({ outputs: kv })}
+                  onChange={kv => updateSession({ outputs: kv })}
                   keyPlaceholder="name"
                   valuePlaceholder="value"
                   disabled={!onUpdateApi}
@@ -2016,13 +2262,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               label="Setenv"
               editing={editSetenvDecl}
               onEdit={() => setEditSetenvDecl(true)}
+              hideEdit={isSandbox}
             />
-            {editSetenvDecl ? (
+            {editSetenvDecl && !isSandbox ? (
               <div>
                 <KSVEditor
                   label=""
                   value={api.setenv}
-                  onChange={kv => onUpdateApi?.({ setenv: kv })}
+                  onChange={kv => updateSession({ setenv: kv })}
                   keyPlaceholder="name"
                   valuePlaceholder="body.path or regex"
                   disabled={!onUpdateApi}

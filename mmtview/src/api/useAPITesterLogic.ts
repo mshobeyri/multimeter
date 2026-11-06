@@ -7,6 +7,7 @@ import { safeList } from "mmt-core/util/safer";
 import {
   fieldForYamlSave,
   reconcileResolvedRequestWithFieldPreview,
+  requestForSend,
   seedTokenFieldPreviewFromRequest,
 } from "mmt-core/api-edit/apiBodyEdit";
 import { loadEnvVariables } from "../workspaceStorage";
@@ -45,6 +46,10 @@ interface UseAPITesterLogicParams {
   initialExampleIndex?: number;
   /** Bump TokenFieldInput preview after r:/c: cache seed (open / telescope / Send). */
   onRuntimePreviewSeeded?: () => void;
+  /**
+   * Sandbox session: Send uses on-screen `requestData` (isolated clone is `api`).
+   */
+  sandboxMode?: boolean;
 }
 
 function clampExampleIndex(examples: unknown[] | undefined, index: number | undefined): number {
@@ -64,12 +69,15 @@ export function useAPITesterLogic({
   filePath,
   initialExampleIndex,
   onRuntimePreviewSeeded,
+  sandboxMode = false,
 }: UseAPITesterLogicParams) {
   const [autoFormatBody, setAutoFormatBodyState] = useState<boolean>(() => readCachedBodyAutoFormat());
   const autoFormatBodyRef = useRef(autoFormatBody);
   autoFormatBodyRef.current = autoFormatBody;
   const onRuntimePreviewSeededRef = useRef(onRuntimePreviewSeeded);
   onRuntimePreviewSeededRef.current = onRuntimePreviewSeeded;
+  const sandboxModeRef = useRef(sandboxMode);
+  sandboxModeRef.current = sandboxMode;
   const network = useNetwork(autoFormatBody);
   const apiRef = useRef<APIData>(api);
   const [requestData, setRequestData] = useState<Request>();
@@ -121,6 +129,12 @@ export function useAPITesterLogic({
     }
   }, []);
 
+  /** Drop scratch requestData (e.g. leaving sandbox) before a YAML re-resolve. */
+  const discardRequestScratch = useCallback(() => {
+    resetTouchedFields();
+    setRequestData(undefined);
+  }, [resetTouchedFields]);
+
   /** Pack UI edit buffers into YAML forms and write the file immediately. */
   const writeYamlPatch = useCallback((patch: Partial<Request>) => {
     if (!onUpdateApi || Object.keys(patch).length === 0) {
@@ -135,7 +149,10 @@ export function useAPITesterLogic({
     onUpdateApi(yamlPatch);
   }, [onUpdateApi]);
 
-  /** Update one or more request fields and write them to YAML immediately. */
+  /**
+   * Update request fields and peer them through `onUpdateApi`.
+   * In sandbox the parent passes a session writer (never the YAML file).
+   */
   const updateFields = useCallback((patch: Partial<Request>) => {
     const keys = Object.keys(patch) as (keyof Request)[];
     if (keys.length === 0) {
@@ -284,6 +301,18 @@ export function useAPITesterLogic({
   const buildRequestForSend = useCallback(async (): Promise<Request> => {
     const envParameters = await loadEnvParameters();
     setEnvValues(envParameters);
+
+    // Sandbox: send the on-screen request (literals may differ from YAML).
+    if (sandboxModeRef.current && requestDataRef.current) {
+      const live = requestDataRef.current;
+      const reqFormat = resolveRequestFormat(
+        requestFormat(live.format ?? apiRef.current.format),
+        live.headers as Record<string, string> | undefined,
+        live.method ?? apiRef.current.method,
+      );
+      return requestForSend(live, reqFormat);
+    }
+
     const { resolved, sendRequest } = await prepareApiTesterSend(
       apiRef.current,
       currentInputsRef.current,
@@ -503,10 +532,15 @@ export function useAPITesterLogic({
     }));
   }, [selectedExampleIdx]);
 
-  const handleRunInCore = useCallback(() => {
-    void runViaCore({ forSend: false });
+  const handleRunInCore = useCallback(async () => {
+    if (sandboxModeRef.current) {
+      const req = await buildRequestForSend();
+      await runViaCore({ forSend: false, resolvedRequest: req });
+    } else {
+      void runViaCore({ forSend: false });
+    }
     window.vscode?.postMessage({ command: "showLogOutputChannel" });
-  }, [runViaCore]);
+  }, [runViaCore, buildRequestForSend]);
 
   const handleSend = useCallback(async () => {
     // Keep the previous response visible until the new result arrives so the
@@ -682,6 +716,7 @@ export function useAPITesterLogic({
     handleAddOutputVariable,
     handleAddOutputExpression,
     prepareRequestData,
+    discardRequestScratch,
     handleSend,
     handleRunInCore,
     handleCancel,
