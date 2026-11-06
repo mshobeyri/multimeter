@@ -18,8 +18,10 @@ Open the file in VS Code and click **Send**. The Response panel shows the result
 
 - Add `inputs` when callers should pass values; use `<<i:name>>` in the URL or body.
 - Add `outputs` to extract fields for tests and chained calls.
+- Use the request mode dropdown for **Edit** / **Telescope** / **Sandbox** — Sandbox lets you try a request without writing the YAML. See [Request modes](../files/api/request-modes.md).
 
 ## Learn more
 
 - [API files](../files/api/index.md)
+- [Request modes](../files/api/request-modes.md)
 - Example: [Simple API](/docs/examples/basic/01_simple_api)

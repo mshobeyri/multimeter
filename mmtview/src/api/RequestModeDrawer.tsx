@@ -51,8 +51,8 @@ interface RequestModeDrawerProps {
 }
 
 /**
- * Collapsed: current mode icon. Click expands horizontally to pick Edit /
- * Telescope / Sandbox; choosing a mode collapses back to that icon.
+ * Collapsed: current mode icon only. Open: dropdown with icon + label for
+ * Edit / Telescope / Sandbox.
  */
 const RequestModeDrawer: React.FC<RequestModeDrawerProps> = ({
   mode,
@@ -88,11 +88,11 @@ const RequestModeDrawer: React.FC<RequestModeDrawerProps> = ({
   return (
     <div
       ref={rootRef}
-      className={`apitest-mode-drawer${open ? " is-open" : ""}`}
+      className={`apitest-mode-menu${open ? " is-open" : ""}`}
     >
       <button
         type="button"
-        className={`button-icon no-shrink section-edit-toggle apitest-header-tool-btn apitest-mode-drawer-current${
+        className={`button-icon no-shrink section-edit-toggle apitest-header-tool-btn apitest-mode-menu-trigger${
           mode !== "edit" ? " is-active" : ""
         }`}
         aria-label={current.label}
@@ -104,38 +104,39 @@ const RequestModeDrawer: React.FC<RequestModeDrawerProps> = ({
       >
         <ModeGlyph option={current} />
       </button>
-      <div
-        className="apitest-mode-drawer-panel"
-        role="listbox"
-        aria-label="Request mode"
-        aria-hidden={!open}
-      >
-        {MODE_OPTIONS.map((item) => {
-          const selected = item.mode === mode;
-          return (
-            <button
-              key={item.mode}
-              type="button"
-              role="option"
-              aria-selected={selected}
-              className={`button-icon no-shrink section-edit-toggle apitest-header-tool-btn apitest-mode-drawer-option${
-                selected ? " is-active" : ""
-              }`}
-              title={item.title}
-              aria-label={item.label}
-              onMouseDown={(event) => event.preventDefault()}
-              onClick={() => {
-                setOpen(false);
-                if (item.mode !== mode) {
-                  onChange(item.mode);
-                }
-              }}
-            >
-              <ModeGlyph option={item} />
-            </button>
-          );
-        })}
-      </div>
+      {open ? (
+        <div
+          className="apitest-mode-menu-panel"
+          role="listbox"
+          aria-label="Request mode"
+        >
+          {MODE_OPTIONS.map((item) => {
+            const selected = item.mode === mode;
+            return (
+              <button
+                key={item.mode}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                className={`apitest-mode-menu-option${selected ? " is-selected" : ""}`}
+                title={item.title}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  setOpen(false);
+                  if (item.mode !== mode) {
+                    onChange(item.mode);
+                  }
+                }}
+              >
+                <span className="apitest-mode-menu-option-icon" aria-hidden>
+                  <ModeGlyph option={item} />
+                </span>
+                <span className="apitest-mode-menu-option-label">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
     </div>
   );
 };

@@ -32,7 +32,7 @@ See also: [Environment](../../files/env/index.md) · [Inputs](../../files/api/in
 | Token appears inside other text (e.g. `X-Id: user-<<r:uuid>>`) | Substituted as string |
 | Missing env/input key | Original token text kept (e.g. `<<e:missing>>`) |
 | Unknown `r:` / `c:` name | Original token text kept |
-| UI editing | Idle preview resolves `i:`/`e:`; keeps `r:`/`c:` as `{{r:…}}` / `{{c:…}}` so samples are not frozen |
+| UI editing | Idle preview resolves `i:`/`e:`; keeps `r:`/`c:` as `{{r:…}}` / `{{c:…}}` so samples are not frozen. API tester **Edit** / **Telescope** / **Sandbox** control token vs resolved display — see [Request modes](../../files/api/request-modes.md) |
 | CLI / test run | Random values are evaluated fresh per run (no cross-run cache) |
 
 **Forms:** On disk, prefer bare whole-value tokens (`r:int`) and `<<prefix:name>>` when embedded. The API tester UI uses `{{prefix:name}}`. That curly form is also **accepted in YAML outside quotes** (rewritten to `<<…>>` before parse, then bare when whole-value). Quoted `"{{…}}"` stays literal. Postman-style `{{var}}` **without** an `i`/`e`/`r`/`c` prefix is **not** supported — use `e:var` / `<<e:var>>` instead.

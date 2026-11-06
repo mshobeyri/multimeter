@@ -1,6 +1,6 @@
 # Edit API fields in the tester
 
-API fields are edited inline in the **API tester** — there is no separate Edit API page. Edits write directly to the YAML.
+API fields are edited inline in the **API tester** — there is no separate Edit API page. In **Edit** and **Telescope** modes, edits write directly to the YAML. In **Sandbox**, request-field edits stay on an isolated clone and never write the file; declaration pencils, Auth, and Settings are unavailable. See [Request modes](./request-modes.md).
 
 ## Where to edit
 
@@ -37,4 +37,4 @@ Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message)
 
 ---
 
-See also: [API overview](./index.md) · [Quick start](./quick-start.md) · [Reference](./reference.md) · [Examples](./examples.md)
+See also: [API overview](./index.md) · [Request modes](./request-modes.md) · [Quick start](./quick-start.md) · [Reference](./reference.md) · [Examples](./examples.md)

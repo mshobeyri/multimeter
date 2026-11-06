@@ -19,6 +19,7 @@
 - [API](./files/api/index.md)
   - [Quick start](./files/api/quick-start.md)
   - [Edit API fields](./files/api/edit.md)
+  - [Request modes](./files/api/request-modes.md)
   - [Protocols](./files/api/protocols/index.md)
     - [HTTP](./files/api/protocols/http.md)
     - [WebSocket](./files/api/protocols/websocket.md)

@@ -1041,56 +1041,94 @@
   font-size: 9.6px;
 }
 
-/* Same padding idle/active so the tint bg does not shift neighbors. */
+/* Same size idle/active so tint bg and mode icon swaps do not shift neighbors. */
 .section-edit-toggle.apitest-header-tool-btn {
   padding: 2px;
+  width: 24px;
+  height: 24px;
   border-radius: 6px;
   box-sizing: border-box;
 }
 
-/* Edit / Telescope / Sandbox — collapsed shows current; open expands horizontally. */
-.apitest-mode-drawer {
+/* Edit / Telescope / Sandbox — icon-only trigger; dropdown lists icon + name. */
+.apitest-mode-menu {
   position: relative;
   display: flex;
   align-items: center;
   flex-shrink: 0;
 }
 
-.apitest-mode-drawer-current {
-  position: relative;
-  z-index: 2;
+.apitest-mode-menu-panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 40;
+  min-width: 132px;
+  padding: 4px 0;
+  border: 1px solid var(--vscode-editorWidget-border, #454545);
+  border-radius: var(--mmt-control-radius, 6px);
+  background: var(--vscode-dropdown-background, var(--vscode-editor-background, #1e1e1e));
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
-.apitest-mode-drawer-panel {
+.apitest-mode-menu-option {
   display: flex;
   align-items: center;
-  gap: 2px;
-  max-width: 0;
-  opacity: 0;
-  overflow: hidden;
-  pointer-events: none;
-  margin-left: 0;
-  transition:
-    max-width 160ms ease,
-    opacity 120ms ease,
-    margin-left 160ms ease;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 10px;
+  border: none;
+  background: transparent;
+  color: var(--vscode-dropdown-foreground, var(--vscode-foreground, #cccccc));
+  font-size: 12px;
+  line-height: 1.2;
+  text-align: left;
+  cursor: pointer;
 }
 
-.apitest-mode-drawer.is-open .apitest-mode-drawer-panel {
-  max-width: 120px;
-  opacity: 1;
-  pointer-events: auto;
-  margin-left: 4px;
+.apitest-mode-menu-option:hover,
+.apitest-mode-menu-option:focus,
+.apitest-mode-menu-option.is-selected {
+  background: var(--vscode-list-hoverBackground, rgba(90, 93, 94, 0.31));
 }
 
-.apitest-mode-drawer.is-open .apitest-mode-drawer-current {
-  display: none;
+.apitest-mode-menu-option:focus-visible {
+  outline: none;
+}
+
+.apitest-mode-menu-option-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 19.2px;
+  height: 19.2px;
+  flex-shrink: 0;
+  color: var(--vscode-descriptionForeground, #9d9d9d);
+}
+
+.apitest-mode-menu-option.is-selected .apitest-mode-menu-option-icon,
+.apitest-mode-menu-option:hover .apitest-mode-menu-option-icon {
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.apitest-mode-menu-option-icon .codicon {
+  font-size: 19.2px;
+}
+
+.apitest-mode-menu-option-icon .apitest-mode-custom-icon {
+  width: 19.2px;
+  height: 19.2px;
+}
+
+.apitest-mode-menu-option-label {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .apitest-mode-custom-icon {
   display: block;
-  width: 19.8px;
-  height: 19.8px;
+  width: 19.2px;
+  height: 19.2px;
   flex-shrink: 0;
 }
 

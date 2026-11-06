@@ -6,8 +6,8 @@ const SandboxIcon: React.FC<{ className?: string }> = ({ className }) => (
     className={className}
     // Extra leading space so the box sits slightly right of center.
     viewBox="-2 1 22 18"
-    width="1em"
-    height="1em"
+    width="19.2"
+    height="19.2"
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden
   >

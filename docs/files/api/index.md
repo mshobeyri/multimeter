@@ -24,7 +24,7 @@ Example run glyphs appear only when the example has a non-empty `id` (or depreca
 | **Method / protocol** | Colored dropdown left of the URL (e.g. {{btn:method:POST}}). Pick an HTTP method, or switch protocol to WebSocket / GraphQL / gRPC |
 | **URL** | Editable request URL. Edits in the Params tab stay synced with the query string |
 
-Edits in the tester (including Doc pencils, Settings, and In/Out declarations) write to the YAML. See [Edit API fields](./edit.md).
+Edits in the tester (including Doc pencils, Settings, and In/Out declarations) write to the YAML — except in **Sandbox**, which never writes the file. See [Edit API fields](./edit.md) and [Request modes](./request-modes.md).
 
 ### YAML errors
 
@@ -40,7 +40,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 | **Auth** | `auth` (none, bearer, basic, API key, OAuth2) |
 | **Params** | Query parameters |
 | **Headers** | Request headers |
-| **Body** | Request body (format bar, pretty/raw). Telescope toggles resolved values vs editable tokens — see below |
+| **Body** | Request body (format bar, pretty/raw). Token vs resolved display follows the [request mode](./request-modes.md) |
 | **Cookies** | Request cookies |
 | **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs** and soft **Expect**. Pencil edits declarations. Fields with `<<i:name>> [options]` in `description` show a ⋯ value picker. Badge shows input count |
 | **Doc** | **Title**, **tags**, and **description** (Markdown). Pencil per section to edit |
@@ -59,7 +59,7 @@ Send sits on the URL row (next to the method+URL control). Duration, status, his
 
 | Control | What it does |
 |---|---|
-| {{btn:telescope}} | **Request mode** drawer (click to expand): **Edit** (token text, writes YAML), **Telescope** (resolved values; edits write tokens to YAML), **Sandbox** (fully isolated clone of the current YAML — UI edits never write the file; YAML edits reset the clone; leaving drops the session with no merge). Sandbox dims the tester (85% opacity) with a thin sand-yellow frame. **Send** remints in Edit/Telescope; in Sandbox it sends the session request. |
+| Mode ({{btn:edit-code}} / {{btn:telescope}} / Sandbox) | Icon-only control; open the dropdown to pick **Edit**, **Telescope**, or **Sandbox**. Full behavior: [Request modes](./request-modes.md) |
 | {{btn:globe}} | Open the [Environment Variables](../env/ui.md) panel |
 
 ### Send
@@ -116,7 +116,7 @@ cookies:
 
 ## API elements
 
-- [Quick start](./quick-start.md) · [Edit API fields](./edit.md)
+- [Quick start](./quick-start.md) · [Edit API fields](./edit.md) · [Request modes](./request-modes.md)
 - [Protocols](./protocols/index.md) — HTTP, WebSocket, GraphQL, gRPC
 - [Body](./body/index.md) — [format](./body/format.md), [request body](./body/body.md), [HTTP examples](./protocols/http-bodies.md)
 - [Headers](./headers.md) · [Auth](./auth.md)
