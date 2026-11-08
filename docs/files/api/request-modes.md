@@ -38,9 +38,9 @@ Switch to Sandbox from Edit or Telescope. Multimeter clones the current YAML buf
 - **Send** uses the sandbox session values — it does not remint from YAML or write the file.
 - Response, history, environment panel, and token cache stay shared with the normal tester (leaving Sandbox does not roll those back).
 
-### YAML wins
+### Reset / YAML wins
 
-If you edit the YAML on the left while Sandbox is active, the clone is reset from the new YAML. UI sandbox edits are discarded; there is no merge.
+While Sandbox is active, a **Reset** control ({{btn:discard}}) sits left of the mode dropdown. It re-clones from the current YAML and resets runtime inputs to the file defaults — same as editing the YAML on the left. UI sandbox edits are discarded; there is no merge.
 
 ### Leave
 

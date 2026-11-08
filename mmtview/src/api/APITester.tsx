@@ -480,8 +480,27 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     localStorage.setItem(REQUEST_VIEW_MODE_KEY, requestViewMode);
   }, [requestViewMode]);
 
-  // Sandbox is YAML-driven: when the file model changes, replace scratch UI.
+  // Sandbox is YAML-driven: re-clone from the file model (YAML edit or Reset).
+  // Do not prepare against the previous session here — that raced one keystroke
+  // behind. Live YAML sync lets the hook `[api]` effect resolve the new clone;
+  // Reset prepares explicitly with `apiSource` so remint hits the fresh model.
   const sandboxYamlSyncRef = useRef(api);
+  const reseedSandboxFromYaml = useCallback((source: APIData) => {
+    sandboxYamlSyncRef.current = source;
+    const clone = cloneApiData(source);
+    const nextInputs = adoptInputsBaseline(clone.inputs || {}, -1);
+    setSandboxApi(clone);
+    setRequestUiEpoch((n) => n + 1);
+    // File wins: reset runtime inputs to the YAML defaults.
+    setSelectedExampleIdx(-1);
+    setCurrentInputs(nextInputs);
+    return { clone, nextInputs };
+  }, [
+    adoptInputsBaseline,
+    setSelectedExampleIdx,
+    setCurrentInputs,
+  ]);
+
   useEffect(() => {
     if (requestViewMode !== "sandbox") {
       sandboxYamlSyncRef.current = api;
@@ -490,27 +509,22 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     if (sandboxYamlSyncRef.current === api) {
       return;
     }
-    sandboxYamlSyncRef.current = api;
-    const clone = cloneApiData(api);
-    setSandboxApi(clone);
-    setRequestUiEpoch((n) => n + 1);
-    // File wins: reset runtime inputs to the new YAML defaults.
-    const nextInputs = adoptInputsBaseline(clone.inputs || {}, -1);
-    setSelectedExampleIdx(-1);
-    setCurrentInputs(nextInputs);
+    reseedSandboxFromYaml(api);
+  }, [api, requestViewMode, reseedSandboxFromYaml]);
+
+  const resetSandbox = useCallback(() => {
+    if (requestViewMode !== "sandbox") {
+      return;
+    }
+    const { clone, nextInputs } = reseedSandboxFromYaml(api);
     void prepareRequestData(nextInputs, {
       forceReset: true,
       respectTouched: false,
       scopes: ["all"],
+      refreshRuntimeTokens: true,
+      apiSource: clone,
     });
-  }, [
-    api,
-    requestViewMode,
-    prepareRequestData,
-    adoptInputsBaseline,
-    setSelectedExampleIdx,
-    setCurrentInputs,
-  ]);
+  }, [api, requestViewMode, reseedSandboxFromYaml, prepareRequestData]);
 
   // Based on the displayed URL (not resolved inputs/env)
   const isDisplayedUrlWebSocket = (protocol: Protocol | undefined, url: string | undefined
@@ -1148,6 +1162,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       respectTouched: false,
       scopes: ["all"],
       refreshRuntimeTokens: true,
+      apiSource: clone,
     });
   }, [prepareRequestData, currentInputs, selectedExampleIdx, dirtyInputKeys]);
 
@@ -1604,6 +1619,17 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           className={`apitest-tabs-tools-divider${shouldShowBody() ? "" : " is-hidden"}`}
           aria-hidden
         />
+        {isSandbox ? (
+          <button
+            type="button"
+            className="button-icon no-shrink section-edit-toggle apitest-header-tool-btn"
+            onClick={resetSandbox}
+            title="Reset sandbox from YAML"
+            aria-label="Reset sandbox from YAML"
+          >
+            <span className="codicon codicon-discard" aria-hidden />
+          </button>
+        ) : null}
         <RequestModeDrawer
           mode={requestViewMode}
           onChange={(mode) => { void handleRequestViewModeChange(mode); }}

@@ -59,6 +59,7 @@ Send sits on the URL row (next to the method+URL control). Duration, status, his
 
 | Control | What it does |
 |---|---|
+| {{btn:discard}} | **Sandbox only** — reset the sandbox from the current YAML (same as a YAML edit). Left of the mode control |
 | Mode ({{btn:edit-code}} / {{btn:telescope}} / Sandbox) | Icon-only control; open the dropdown to pick **Edit**, **Telescope**, or **Sandbox**. Full behavior: [Request modes](./request-modes.md) |
 | {{btn:globe}} | Open the [Environment Variables](../env/ui.md) panel |
 

@@ -106,14 +106,13 @@ export function useAPITesterLogic({
   const examples = useMemo(() => safeList(api.examples), [api.examples]);
   const prevApiRef = useRef<APIData | null>(null);
   const prevExampleIdxRef = useRef(selectedExampleIdx);
+  /** Drop late async prepares so rapid YAML edits cannot apply a stale body. */
+  const prepareGenerationRef = useRef(0);
 
-  useEffect(() => {
-    apiRef.current = api;
-  }, [api]);
-
-  useEffect(() => {
-    currentInputsRef.current = currentInputs;
-  }, [currentInputs]);
+  // Track during render so same-tick prepare/send after flushSync sees the
+  // latest session (sandbox reseed must not resolve the previous clone).
+  apiRef.current = api;
+  currentInputsRef.current = currentInputs;
 
   const markFieldTouched = useCallback((field: keyof Request) => {
     if (!touchedFieldsRef.current.has(field)) {
@@ -213,8 +212,9 @@ export function useAPITesterLogic({
 
   const resolveFreshRequestData = useCallback(async (
     inputs?: JSONRecord,
-    options?: { refreshRuntimeTokens?: boolean }
+    options?: { refreshRuntimeTokens?: boolean; apiSource?: APIData }
   ): Promise<{ request: Request; refreshRuntimeTokens: boolean }> => {
+    const source = options?.apiSource ?? apiRef.current;
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const envParameters = await loadEnvParameters();
     setEnvValues(envParameters);
@@ -223,13 +223,13 @@ export function useAPITesterLogic({
     // First time a git `c:` appears (e.g. typed after open): fetch + remint.
     const refreshRuntimeTokens =
       options?.refreshRuntimeTokens === true ||
-      shouldFetchGitSnapshotForUi(api);
+      shouldFetchGitSnapshotForUi(source);
     if (refreshRuntimeTokens) {
-      await refreshGitSnapshotFor(api, requestGitSnapshot);
+      await refreshGitSnapshotFor(source, requestGitSnapshot);
     }
     return {
       request: resolveApiRequest(
-        api,
+        source,
         resolvedInputs,
         envParameters,
         {
@@ -239,12 +239,7 @@ export function useAPITesterLogic({
       ),
       refreshRuntimeTokens,
     };
-  }, [api, loadEnvParameters]);
-
-  const seedPreviewFromResolved = useCallback((resolved: Request) => {
-    seedTokenFieldPreviewFromRequest(apiRef.current, resolved);
-    onRuntimePreviewSeededRef.current?.();
-  }, []);
+  }, [loadEnvParameters]);
 
   const prepareRequestData = useCallback((
     inputs?: JSONRecord,
@@ -255,6 +250,8 @@ export function useAPITesterLogic({
       scopes?: ApiUiRefreshScope[];
       /** Fresh r:/c: samples (telescope on / open / explicit refresh). */
       refreshRuntimeTokens?: boolean;
+      /** Resolve this model instead of the current session (sandbox reseed/reset). */
+      apiSource?: APIData;
     }
   ): Promise<Request | undefined> => {
     const scopes: ApiUiRefreshScope[] = options?.scopes ?? ["all"];
@@ -268,21 +265,32 @@ export function useAPITesterLogic({
 
     const resolvedInputs = inputs ?? currentInputsRef.current;
     const respectTouched = options?.respectTouched ?? true;
+    const apiSource = options?.apiSource;
+    const generation = ++prepareGenerationRef.current;
 
     return (async () => {
       const { request: rface, refreshRuntimeTokens } =
         await resolveFreshRequestData(resolvedInputs, {
           refreshRuntimeTokens: options?.refreshRuntimeTokens,
+          apiSource,
         });
+      if (generation !== prepareGenerationRef.current) {
+        return undefined;
+      }
       // Open / telescope / git-first-fetch: remint then seed.
       // Live YAML edits: bind reminted resolve to the same preview store
       // hover + TokenFieldInput use (otherwise body telescope remints alone).
+      const previewApi = apiSource ?? apiRef.current;
       let request = rface;
       if (refreshRuntimeTokens) {
-        seedPreviewFromResolved(rface);
+        seedTokenFieldPreviewFromRequest(previewApi, rface);
+        onRuntimePreviewSeededRef.current?.();
       } else {
         request = reconcileResolvedRequestWithFieldPreview(
-            apiRef.current, rface) as Request;
+            previewApi, rface) as Request;
+      }
+      if (generation !== prepareGenerationRef.current) {
+        return undefined;
       }
       setRequestData((prev) =>
         applyScopedRequestData(
@@ -290,7 +298,7 @@ export function useAPITesterLogic({
       );
       return request;
     })();
-  }, [resetTouchedFields, resolveFreshRequestData, seedPreviewFromResolved]);
+  }, [resetTouchedFields, resolveFreshRequestData]);
 
   /**
    * Remint r:/c:, seed the field-preview cache, then return the wire request.
