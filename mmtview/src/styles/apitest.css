@@ -1135,9 +1135,9 @@
 /* Sandbox: whole tester is dimmed and framed — scratch edits, YAML still drives. */
 .apitest-root--sandbox {
   opacity: 0.85;
-  outline: 1px solid #c2a35a;
-  outline-offset: -1px;
-  border-radius: 4px;
+  /* inset shadow follows radius (outline does not) and keeps layout stable */
+  box-shadow: inset 0 0 0 1px rgba(194, 163, 90, 0.5);
+  border-radius: 10px;
 }
 
 .section-edit-toggle.apitest-header-tool-btn .codicon {
