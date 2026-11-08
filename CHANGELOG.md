@@ -2,6 +2,18 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.50.0-pre]
+
+Pre-release. VS Code extension `1.50.0`; Testlight CLI and MCP `1.50.0-pre` on `@pre`.
+
+### API tester
+
+- Add isolated **Sandbox** request mode beside Edit and Telescope (icon dropdown)
+- Sandbox clones the current YAML for Send without writing the file; YAML edits and **Reset** re-clone from the file
+- Soft sand-yellow frame (curved, 20% opacity) while Sandbox is active
+- Fix sandbox body resolve lagging one keystroke behind live YAML edits
+- Document request modes (Edit / Telescope / Sandbox)
+
 ## [1.49.2]
 
 Stable release of the 1.49.x line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.49.2` on `@latest`.
