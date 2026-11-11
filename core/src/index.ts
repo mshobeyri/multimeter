@@ -22,6 +22,8 @@ export * as brunoParsePack from "./parse/brunoParsePack";
 export * as docParsePack from "./parse/docParsePack";
 export * as markupConvertor from "./parse/markupConvertor";
 export * as variableReplacer from "./tokens/variableReplacer";
+export {resolveYamlText} from "./tokens/resolveYamlText";
+export type {ResolveYamlTextOptions} from "./tokens/resolveYamlText";
 export {resolveApiRequest} from "./runner/resolveApiRequest";
 export type {ResolveApiRequestOptions} from "./runner/resolveApiRequest";
 export * as omitKeyword from "./tokens/omitKeyword";

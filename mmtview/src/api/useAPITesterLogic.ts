@@ -30,6 +30,7 @@ import {
 } from "./apiUiRefresh";
 import { resolveApiRequest } from "mmt-core/runner/resolveApiRequest";
 import { requestGitSnapshot } from "../vsAPI";
+import { clearLiveInputs, setLiveInputs } from "../inputs/liveInputsStore";
 import {
   buildApiTesterRunMessage,
   prepareApiTesterSend,
@@ -113,6 +114,15 @@ export function useAPITesterLogic({
   // latest session (sandbox reseed must not resolve the previous clone).
   apiRef.current = api;
   currentInputsRef.current = currentInputs;
+
+  // Publish Inputs / resolved request for YAML "Copy trimmed" / "Copy as Curl".
+  useEffect(() => {
+    setLiveInputs(filePath, currentInputs, {
+      exampleIndex: selectedExampleIdx,
+      request: requestData as Record<string, unknown> | undefined,
+    });
+    return () => clearLiveInputs(filePath);
+  }, [filePath, currentInputs, selectedExampleIdx, requestData]);
 
   const markFieldTouched = useCallback((field: keyof Request) => {
     if (!touchedFieldsRef.current.has(field)) {

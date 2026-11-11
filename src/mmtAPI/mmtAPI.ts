@@ -42,6 +42,37 @@ import {findProjectRootSync} from 'mmt-core/util/fileHelper';
 let curlTerminal: vscode.Terminal|null = null;
 let testlightTerminal: vscode.Terminal|null = null;
 
+function curlTextForShell(
+    set: ReturnType<typeof buildCurlCommandSet>,
+    shell: unknown): string {
+  if (shell === 'powershell') {
+    return set.powershell;
+  }
+  if (shell === 'cmd') {
+    return set.cmd;
+  }
+  return set.posix;
+}
+
+async function handleCopyCurlCommand(
+    message: any, document: vscode.TextDocument, mmtProvider: any) {
+  try {
+    const built = buildCurlArtifacts(message, document, mmtProvider);
+    if (!built) {
+      vscode.window.showWarningMessage('No curl command to copy.');
+      return;
+    }
+    const text = curlTextForShell(built.set, message?.shell);
+    await vscode.env.clipboard.writeText(text);
+    const label = message?.shell === 'powershell' ?
+        'PowerShell' :
+        (message?.shell === 'cmd' ? 'CMD' : 'curl');
+    vscode.window.showInformationMessage(`${label} command copied.`);
+  } catch (err) {
+    vscode.window.showErrorMessage(`Failed to copy curl command: ${err}`);
+  }
+}
+
 async function handleRunCurlCommand(
     message: any, document: vscode.TextDocument, mmtProvider: any) {
   try {
@@ -374,7 +405,9 @@ function getCurlRequest(
     return message.request as Request;
   }
 
-  const rawText = document.getText();
+  const rawText = typeof message.rawFile === 'string' ?
+      message.rawFile :
+      document.getText();
   if (JSer.fileType(document.uri.fsPath, rawText) !== 'api') {
     return undefined;
   }
@@ -794,6 +827,10 @@ export const messageReceived = async (
 
     case 'openMarkdownPreview':
       await file.handleOpenMarkdownPreview(message, mmtProvider);
+      break;
+
+    case 'copyCurlCommand':
+      await handleCopyCurlCommand(message, document, mmtProvider);
       break;
 
     case 'runCurlCommand':

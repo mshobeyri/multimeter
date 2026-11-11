@@ -1,17 +1,25 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import parseYaml, { parseYamlDoc } from "mmt-core/parse/markupConvertor";
 import { apiToYaml } from "mmt-core/parse/apiParsePack";
 import { formatMmtYaml } from "mmt-core/parse/mmtFormat";
 import { curlToAPI, isCurlCommand } from "mmt-core/convert/curlConvertor";
+import { resolveYamlText } from "mmt-core/tokens/resolveYamlText";
 import TextEditor from "../text/TextEditor";
 import { handleBeforeMount } from "./BeforeMount";
 import { validateYamlContent, validationMarkersToProblems } from "./Validate";
 import { safeList } from "mmt-core/util/safer";
 import { opsList } from "mmt-core/data/TestData";
-import { openRelativeFile, openUntitledMmt, showEnvironmentPanel } from "../vsAPI";
+import { openRelativeFile, openUntitledMmt, showEnvironmentPanel, showVSCodeMessage } from "../vsAPI";
 import { loadEnvVariables } from "../workspaceStorage";
+import { FileContext } from "../fileContext";
 import {
+  getLiveInputs,
+  getLiveRequest,
+  getLiveRunInputs,
+} from "../inputs/liveInputsStore";
+import {
+  getTokenHoverEnvMap,
   getTokenValueHoverTipAtPosition,
   setTokenHoverEnvVariables,
 } from "./tokenValueHover";
@@ -205,6 +213,7 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
   language = "yaml",
   sourceFormat = "mmt"
 }) => {
+  const { mmtFilePath } = useContext(FileContext);
   const monacoRef = useRef<any>(null);
   const editorRef = useRef<any>(null);
   const decorationsRef = useRef<string[]>([]);
@@ -1092,10 +1101,79 @@ const YamlEditorPanel: React.FC<YamlEditorPanelProps> = ({
       run: () => reorderDocument(),
     });
 
+    const copyTrimmedAction = editor.addAction({
+      id: "mmt.copyTrimmed",
+      label: "Copy trimmed",
+      contextMenuGroupId: "9_cutcopypaste",
+      contextMenuOrder: 1.5,
+      run: async () => {
+        const yamlText = editor.getValue() ?? contentRef.current ?? "";
+        try {
+          const resolved = resolveYamlText({
+            yamlText,
+            inputs: getLiveInputs(mmtFilePath) as Record<string, any>,
+            env: getTokenHoverEnvMap() as Record<string, any>,
+            resolveRuntimeTokens: false,
+            requestOnly: true,
+          });
+          await navigator.clipboard.writeText(resolved);
+          showVSCodeMessage("info", "Copied trimmed request YAML.");
+        } catch (err) {
+          const message = err instanceof Error ? err.message : "Unable to resolve YAML.";
+          showVSCodeMessage("warn", message);
+        }
+      },
+    });
+
+    const postCopyCurl = (shell: "posix" | "powershell" | "cmd") => {
+      const yamlText = editor.getValue() ?? contentRef.current ?? "";
+      window.vscode?.postMessage({
+        command: "copyCurlCommand",
+        shell,
+        rawFile: yamlText,
+        request: getLiveRequest(mmtFilePath),
+        inputs: getLiveRunInputs(mmtFilePath),
+      });
+    };
+
+    const isWindowsHost = /win/i.test(navigator.platform || "") ||
+      /windows/i.test(navigator.userAgent || "");
+
+    const curlActions = isWindowsHost
+      ? [
+          editor.addAction({
+            id: "mmt.copyAsCurlCmd",
+            label: "Copy as Curl (CMD)",
+            contextMenuGroupId: "9_cutcopypaste",
+            contextMenuOrder: 1.6,
+            run: () => postCopyCurl("cmd"),
+          }),
+          editor.addAction({
+            id: "mmt.copyAsCurlPowerShell",
+            label: "Copy as Curl (PowerShell)",
+            contextMenuGroupId: "9_cutcopypaste",
+            contextMenuOrder: 1.7,
+            run: () => postCopyCurl("powershell"),
+          }),
+        ]
+      : [
+          editor.addAction({
+            id: "mmt.copyAsCurl",
+            label: "Copy as Curl",
+            contextMenuGroupId: "9_cutcopypaste",
+            contextMenuOrder: 1.6,
+            run: () => postCopyCurl("posix"),
+          }),
+        ];
+
     return () => {
       formatAction.dispose();
+      copyTrimmedAction.dispose();
+      for (const action of curlActions) {
+        action.dispose();
+      }
     };
-  }, [editorReady, reorderDocument]);
+  }, [editorReady, reorderDocument, mmtFilePath]);
 
   // Ctrl/Cmd hover + click: open imports/calls, or select API example by name
   useEffect(() => {

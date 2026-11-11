@@ -16,6 +16,7 @@ import SendButton from '../components/SendButton';
 import { loadEnvVariables } from '../workspaceStorage';
 import { keepEditor } from '../vsAPI';
 import { usePrimaryAction } from '../primaryAction';
+import { clearLiveInputs, setLiveInputs } from '../inputs/liveInputsStore';
 import {
     applyEnvRefreshToInputs,
     applyYamlInputsRefresh,
@@ -185,6 +186,12 @@ const TestTest: React.FC<TestTestProps> = ({ testData, runYaml }) => {
     useEffect(() => {
         currentInputsRef.current = currentInputs;
     }, [currentInputs]);
+
+    // Publish Inputs panel values for YAML "Copy trimmed".
+    useEffect(() => {
+        setLiveInputs(mmtFilePath, currentInputs);
+        return () => clearLiveInputs(mmtFilePath);
+    }, [mmtFilePath, currentInputs]);
 
     useEffect(() => {
         stepCountRef.current = stepReports.length;

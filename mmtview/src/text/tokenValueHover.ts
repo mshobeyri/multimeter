@@ -32,6 +32,11 @@ export function setTokenHoverEnvVariables(
   hoverEnvMap = resolveWorkspaceEnvMap(variables || []);
 }
 
+/** Flat env map from the last `setTokenHoverEnvVariables` / environment refresh. */
+export function getTokenHoverEnvMap(): Record<string, unknown> {
+  return {...hoverEnvMap};
+}
+
 function positionToOffset(
     content: string, lineNumber: number, column: number): number {
   const lines = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n');
