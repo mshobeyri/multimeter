@@ -487,9 +487,12 @@ function RunnerPanel({ mode }: { mode: 'test' | 'suite' }) {
   )
 }
 
+const NUDGE_TAB_IDS: DemoTabId[] = ['test']
+
 export default function HeroIllustration() {
   const [activeTab, setActiveTab] = useState<DemoTabId>('api')
   const [copied, setCopied] = useState(false)
+  const [visitedTabs, setVisitedTabs] = useState<Set<DemoTabId>>(() => new Set(['api']))
   const tab = DEMO_TABS.find((item) => item.id === activeTab) || DEMO_TABS[0]
 
   const onCopy = useCallback(async () => {
@@ -507,6 +510,14 @@ export default function HeroIllustration() {
   const onTabClick = useCallback((next: DemoTabId) => {
     setActiveTab(next)
     setCopied(false)
+    setVisitedTabs((prev) => {
+      if (prev.has(next)) {
+        return prev
+      }
+      const nextVisited = new Set(prev)
+      nextVisited.add(next)
+      return nextVisited
+    })
   }, [])
 
   const editorTabs: VSCodeEditorTab[] = DEMO_TABS.map((item) => ({
@@ -514,6 +525,7 @@ export default function HeroIllustration() {
     label: item.label,
     icon: item.icon,
     active: item.id === activeTab,
+    attention: NUDGE_TAB_IDS.includes(item.id) && !visitedTabs.has(item.id),
   }))
 
   return (

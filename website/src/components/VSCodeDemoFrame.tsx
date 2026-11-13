@@ -76,6 +76,8 @@ export type VSCodeEditorTab = {
   label: string
   icon: string
   active?: boolean
+  /** Soft label pulse to invite a click (e.g. inactive hero demo tabs). */
+  attention?: boolean
 }
 
 export function VSCodeEditorTabs({
@@ -86,11 +88,12 @@ export function VSCodeEditorTabs({
   onTabClick?: (id: string) => void
 }) {
   return (
-    <div className="flex items-stretch border-b border-border bg-surface-light/40 min-h-9">
-      <div className="flex min-w-0 flex-1 overflow-x-auto">
+    <div className="flex items-stretch border-b border-border bg-surface-light/40 min-h-9 overflow-y-hidden">
+      <div className="flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
         {tabs.map((tab) => {
-          const active = tab.active !== false
+          const active = Boolean(tab.active)
           const Tag = onTabClick ? 'button' : 'div'
+          const nudge = Boolean(tab.attention) && !active
           return (
             <Tag
               key={tab.id}
@@ -101,7 +104,7 @@ export function VSCodeEditorTabs({
                 active
                   ? 'bg-surface text-slate-200 border-t-2 border-t-primary-light'
                   : 'text-slate-500 hover:text-slate-300 hover:bg-surface/60 border-t-2 border-t-transparent'
-              }`}
+              }${nudge ? ' hero-tab-nudge' : ''}`}
             >
               <Codicon name={tab.icon} className="text-sm opacity-80" />
               <span>{tab.label}</span>

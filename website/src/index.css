@@ -403,6 +403,48 @@ body {
   }
 }
 
+/*
+ * Hero VS Code tabs: bounce the whole test.mmt tab a few times, then rest ~1s.
+ */
+@keyframes hero-tab-nudge {
+  0%,
+  55%,
+  100% {
+    transform: translateY(0);
+  }
+  5% {
+    transform: translateY(-3px);
+  }
+  10% {
+    transform: translateY(2px);
+  }
+  15% {
+    transform: translateY(-3px);
+  }
+  20% {
+    transform: translateY(2px);
+  }
+  25% {
+    transform: translateY(-2px);
+  }
+  30% {
+    transform: translateY(1px);
+  }
+  35% {
+    transform: translateY(0);
+  }
+}
+
+.hero-tab-nudge {
+  animation: hero-tab-nudge 1.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-tab-nudge {
+    animation: none;
+  }
+}
+
 @keyframes scroll-left {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
