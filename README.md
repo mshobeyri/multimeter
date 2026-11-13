@@ -37,9 +37,10 @@
   </p>
 </div>
 
-<p align="center">
-  <img src="res/intro.png" alt="Multimeter — Get Started, YAML, and API tester" width="1200" />
-</p>
+https://github.com/user-attachments/assets/147649f1-4679-4be8-ad4d-a0e37ff0571a
+
+[Download the video (MP4)](./res/media/multimeter-demo.mp4)
+· [More demos](https://mmt.dev/demos)
 
 ## 🚀 Start with a request. Grow into a platform.
 
