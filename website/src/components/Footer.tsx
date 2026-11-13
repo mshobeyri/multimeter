@@ -58,7 +58,7 @@ export default function Footer() {
               <span className="text-xl font-bold text-white">Multimeter</span>
             </Link>
             <p className="text-sm text-slate-400 mb-6">
-              Git-native REST client and API tests in VS Code. YAML .mmt files in Git — same files in CI.
+              Git-native REST client and declarative API test flows in VS Code. Concise YAML — same files in CI.
             </p>
             <div className="flex items-center gap-4">
               <a

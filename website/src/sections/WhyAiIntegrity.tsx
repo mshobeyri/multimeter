@@ -39,11 +39,11 @@ export default function WhyAiIntegrity() {
               </span>
               <h2 className="text-3xl sm:text-4xl font-bold text-white mt-3 mb-4 leading-snug">
                 Other tools can use AI too.{' '}
-                <span className="gradient-text">Multimeter is designed for it.</span>
+                <span className="gradient-text">Multimeter keeps you in control.</span>
               </h2>
               <p className="text-base sm:text-lg text-slate-400 mb-5 leading-relaxed">
-                Cursor and Copilot work on Postman, Bruno, or pure JS — but agents drown in
-                collections and scripts. Multimeter keeps the work clear for humans and AI:
+                With first-class flows and short YAML files, you can immediately see what a test
+                expects — and keep that clarity when humans or AI tools write and review it:
               </p>
               <ul className="space-y-3 mb-8">
                 {POINTS.map((item) => (

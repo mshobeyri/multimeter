@@ -59,16 +59,16 @@ const CELLS: Cell[] = [
     eyebrow: 'Test Flows',
     eyebrowClass: 'text-[#facc15]',
     icon: <Workflow size={16} />,
-    title: 'Reusable flows. Same files everywhere.',
+    title: 'Declarative flows. Not scripts.',
     description: (
       <>
-        Chain steps into complete API tests — portable{' '}
+        Multi-step API scenarios as first-class{' '}
         <code className="text-[#facc15] bg-[#facc15]/10 px-1.5 py-0.5 rounded text-sm">.mmt</code>{' '}
-        files in Git, ready for VS Code and CI.
+        YAML — readable, concise, and easy for humans and AI tools to understand and modify.
       </>
     ),
     bullets: [
-      'Call APIs, assert results, loop, and branch in YAML',
+      'Call, assert, loop, and branch as declarative YAML steps',
       'Review paths in a flowchart — edit as code when you need to',
       'Same files in VS Code and CI with testlight',
     ],

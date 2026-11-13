@@ -10,7 +10,7 @@ export const faqItems: FaqItem[] = [
   {
     question: 'What is Multimeter?',
     answer:
-      'A Git-native REST client and API test runner for VS Code (and Cursor). Requests, multi-step tests, suites, mocks, and docs are YAML .mmt files in your repo. Edit them in the visual editor; run the same files in CI with the testlight CLI. Apache 2.0, no account.',
+      'A Git-native REST client and API test runner for VS Code (and Cursor). Multi-step test flows are first-class: define them declaratively in concise YAML — not scripts — so humans and AI tools can read, maintain, and change them. Requests, suites, mocks, and docs are the same .mmt files in your repo; run them in CI with the testlight CLI. Apache 2.0, no account.',
   },
   {
     question: 'How do I get started?',

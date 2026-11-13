@@ -142,7 +142,7 @@ export const comparePages: ComparePageData[] = [
       { feature: 'Test orchestration', other: 'Sequential runner', multimeter: 'Steps, stages, suites, parallel groups' },
       { feature: 'Parallel runs', other: 'Sequential', multimeter: 'Suite groups and test stages' },
       { feature: 'Call cache', other: 'No', multimeter: 'Reuse login/setup in the same run' },
-      { feature: 'Mock server', other: 'No', multimeter: 'Built-in' },
+      { feature: 'Mock server', other: 'Beta', multimeter: 'Built-in' },
       { feature: 'Generated API docs', other: 'No', multimeter: 'HTML and Markdown' },
       { feature: 'CI reports', other: 'Limited', multimeter: 'JUnit, HTML, Markdown, MMT' },
       { feature: 'gRPC', other: 'No', multimeter: 'Yes' },

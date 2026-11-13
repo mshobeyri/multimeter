@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import HeroIllustration from '../components/HeroIllustration'
 
 const POINTS = [
-  'YAML files live in Git',
+  'Declarative YAML test flows',
   'Same files in VS Code and CI',
   'Open specs without converting',
 ]
@@ -24,10 +24,11 @@ export default function Hero() {
           </p>
           <h1 className="text-4xl sm:text-5xl font-extrabold text-white tracking-tight leading-[1.15] mb-8">
             Git-native REST client and{' '}
-            <span className="gradient-text">API tests</span> in VS Code
+            <span className="gradient-text">API test flows</span> in VS Code
           </h1>
           <p className="text-lg sm:text-xl text-slate-400 mb-10 leading-relaxed mx-auto max-w-xl">
-            Requests, tests, mocks, and docs are YAML in Git — same files in the VS Code editor and in CI.
+            Define multi-step scenarios declaratively in concise YAML — not scripts.
+            First-class test flows that humans and AI tools can read, maintain, and change.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 mb-10 justify-center">
             <a

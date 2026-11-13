@@ -21,8 +21,8 @@ export default function Home() {
   return (
     <>
       <Seo
-        title="Multimeter — Git-native REST client and API tests in VS Code"
-        description="Requests, tests, mocks, and docs are YAML in Git — same files in the VS Code editor and in CI. Apache 2.0. No account."
+        title="Multimeter — Git-native REST client and API test flows in VS Code"
+        description="Define multi-step API test flows declaratively in concise YAML — not scripts. Same files in VS Code and CI. Apache 2.0. No account."
         path="/"
       />
       <Hero />

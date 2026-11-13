@@ -102,8 +102,8 @@ const features: FeatureRow[] = [
   },
   {
     feature: 'Local mock server',
-    help: 'Multimeter ships a local mock server from YAML (including WebSocket). Postman mocks are cloud/paid. Bruno and REST Client do not include one.',
-    values: { multimeter: true, postman: 'Cloud (paid)', bruno: false, restClient: false },
+    help: 'Multimeter ships a local mock server from YAML (including WebSocket). Postman mocks are cloud/paid. Bruno added a local mock server in beta (v4.1+). REST Client does not include one.',
+    values: { multimeter: true, postman: 'Cloud (paid)', bruno: 'Beta', restClient: false },
   },
   {
     feature: 'Open specs without converting',

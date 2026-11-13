@@ -47,9 +47,9 @@ const features = [
   },
   {
     icon: MousePointer2,
-    title: 'Drag & Drop Flows',
+    title: 'Flows as Files',
     description:
-      'Build functional test flows visually, then keep them as editable YAML.',
+      'Multi-step test flows are first-class YAML files — concise, reviewable, and easy to change. Drag and drop is also supported for building flows.',
     color: 'text-lime-400',
     bg: 'bg-lime-400/10',
   },
@@ -106,7 +106,7 @@ export default function Features() {
               <span className="gradient-text">Nothing you don't.</span>
             </h2>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-              Start with one request. Grow into tests, mocks, suites, and CI — same YAML files.
+              Define multi-step test flows in concise YAML. Grow into mocks, suites, and CI — same files.
             </p>
           </div>
         </FadeIn>
