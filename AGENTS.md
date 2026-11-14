@@ -224,3 +224,10 @@ Suite runs are executed via a core-native **suite bundle** runner.
 - **Lifecycle**: core emits `scope: 'suite-run-start'` / `scope: 'suite-run-finished'` reporter events.
 - **Per-item**: core emits `scope: 'suite-item'` with `status: 'running' | 'passed' | 'failed'` and the related `id`.
 - **Step routing**: child runs receive `id`, and downstream test-step events should be routed by `id` (extension currently backfills `id` using `runId` mapping when needed).
+
+## Open follow-ups (community, 2026-11-14)
+
+Not urgent — no current `testlight` breaking changes — but keep in mind:
+
+1. **CI docs (pinning):** Quick-start may keep floating `npx` for try-it. Production CI docs should say to pin `mshobeyri/testlight-action@v1` (or lock `mmt-testlight` in `package.json` + lockfile). Floating runner ⇒ green can break with no `.mmt` change.
+2. **MCP scaffold (`mmtmcp/`):** When changing `scaffold_test` / agent write paths, prefer PR-ready `.mmt` with real asserts/schema (“receipt”). Avoid defaults that only pass against invented mocks so agents don’t ship green fiction.

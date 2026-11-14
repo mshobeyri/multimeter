@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import HeroIllustration from '../components/HeroIllustration'
 
 const POINTS = [
-  'Declarative YAML test flows',
+  'Declarative, reviewable YAML test flows',
   'Same files in VS Code and CI',
   'Open specs without converting',
 ]
