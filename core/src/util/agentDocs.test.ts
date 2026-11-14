@@ -16,6 +16,7 @@ describe('agentDocs', () => {
       'suite',
       'env',
       'doc',
+      'adoption',
       'constraints',
       'all',
       'offline',
@@ -26,6 +27,8 @@ describe('agentDocs', () => {
   it('maps min and full packs to the same guide files', () => {
     expect(filesForAgentDocTopic('test', 'min')).toEqual(['min/test.md']);
     expect(filesForAgentDocTopic('test', 'full')).toEqual(['generate-test.md']);
+    expect(filesForAgentDocTopic('adoption', 'min')).toEqual(['min/adoption.md']);
+    expect(filesForAgentDocTopic('adoption', 'full')).toEqual(['adoption.md']);
     expect(filesForAgentDocTopic('offline')).toEqual(['offline-agent.md']);
   });
 

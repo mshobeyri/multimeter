@@ -1,6 +1,6 @@
 export type AgentDocTopic =
     'overview'|'workflow'|'test'|'api'|'loadtest'|'suite'|'env'|'doc'|
-    'constraints'|'all'|'offline';
+    'adoption'|'constraints'|'all'|'offline';
 
 export type AgentDocPack = 'min'|'full';
 
@@ -14,6 +14,7 @@ export const FULL_TOPIC_FILES:
       suite: ['generate-suite.md'],
       env: ['generate-env.md'],
       doc: ['generate-doc.md'],
+      adoption: ['adoption.md'],
       constraints: ['generate-test-skill.md'],
     };
 
@@ -27,6 +28,7 @@ export const MIN_TOPIC_FILES:
       suite: ['min/suite.md'],
       env: ['min/env.md'],
       doc: ['min/doc.md'],
+      adoption: ['min/adoption.md'],
       constraints: ['min/constraints.md'],
     };
 

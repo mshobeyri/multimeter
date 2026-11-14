@@ -2,6 +2,8 @@
 
 Prefer MCP tools when available. Offline: `testlight docs`, `testlight scaffold`, `testlight validate`.
 
+Team/IDE/CI/migration questions → topic `adoption`.
+
 ## Types
 
 - `api` — one endpoint

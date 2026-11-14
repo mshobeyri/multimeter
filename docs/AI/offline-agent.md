@@ -21,7 +21,7 @@ Few-shot: mirror `examples/ai/golden_smoke/` (see `docs/AI/golden-smoke.md`).
 
 ### Topics
 
-`overview` | `workflow` | `test` | `api` | `suite` | `env` | `doc` | `loadtest` | `constraints`
+`overview` | `workflow` | `test` | `api` | `suite` | `env` | `doc` | `loadtest` | `adoption` | `constraints`
 
 ```
 testlight docs test

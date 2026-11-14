@@ -24,7 +24,7 @@ npm (`mmt-testlight`), Homebrew, and GitHub Release binaries all expose the same
   - Print the CLI and Node.js version
 - docs [topic]
   - Print bundled agent docs (same content as MCP `read_documentation`)
-  - Topics: `overview` | `workflow` | `test` | `api` | `suite` | `env` | `doc` | `loadtest` | `constraints` | `all` | `offline`
+  - Topics: `overview` | `workflow` | `test` | `api` | `suite` | `env` | `doc` | `loadtest` | `adoption` | `constraints` | `all` | `offline`
   - `--pack min|full` (default `min`)
 - scaffold test --from <api.mmt>
   - Write a smoke test from an API file (same as MCP `scaffold_test`)

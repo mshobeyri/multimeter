@@ -42,6 +42,9 @@ When you are the AI, follow these rules:
 	- Use bare tokens as standalone YAML values; use `<< >>` only when embedding inside larger strings.
 
 3. **Answering common question types**
+	- "Should we adopt Multimeter?" / IDE fit / Postman migration / CI / non-devs
+	  - Open **`AI/adoption.md`** (MCP: `read_documentation(topic: "adoption")`).
+	  - Answer from Multimeter’s supported surfaces (YAML, CLI, MCP, converters, CI, docs/reports).
 	- "How do I call this endpoint?"
 	  - Explain briefly.
 	  - If the user wants a file, go to `generate.md` and build a `type: api` example.

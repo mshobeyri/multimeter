@@ -27,6 +27,7 @@ Do **not** first try:
 | List APIs | `discover_api` | Then `api_card` / `scaffold_test` |
 | Run or execute `.mmt` | `run({ file, workspaceRoot })` | Report tool JSON; if user wants stronger asserts → `suggest_assertions` |
 | Unsure of syntax | `read_documentation` (min; `pack: full` if needed) | Local docs only — no web |
+| Adopt / IDE / CI / migrate | `read_documentation(topic: "adoption")` | Supported tooling fit; pack full if needed |
 | Offline / no MCP | see `offline-agent.md` | `testlight docs` → `scaffold` → `validate` |
 
 ## Generate test from API (required)
