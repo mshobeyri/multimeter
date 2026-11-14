@@ -145,6 +145,11 @@
       "require": "./dist/convert/postmanConvertor.js",
       "default": "./dist/convert/postmanConvertor.js"
     },
+    "./convert/mmtToPostmanConvertor": {
+      "types": "./dist/convert/mmtToPostmanConvertor.d.ts",
+      "require": "./dist/convert/mmtToPostmanConvertor.js",
+      "default": "./dist/convert/mmtToPostmanConvertor.js"
+    },
     "./convert/openapiConvertor": {
       "types": "./dist/convert/openapiConvertor.d.ts",
       "require": "./dist/convert/openapiConvertor.js",

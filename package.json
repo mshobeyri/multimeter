@@ -457,6 +457,12 @@
         "icon": "$(export)"
       },
       {
+        "command": "multimeter.convert.toPostman",
+        "title": "Convert to Postman...",
+        "category": "Multimeter",
+        "icon": "$(export)"
+      },
+      {
         "command": "multimeter.views.groupInSidebar",
         "title": "Group Environment & History in Sidebar",
         "category": "Multimeter"
@@ -679,6 +685,11 @@
           "group": "navigation@50"
         },
         {
+          "command": "multimeter.convert.toPostman",
+          "when": "resourceExtname == .mmt",
+          "group": "navigation@50"
+        },
+        {
           "command": "multimeter.mmt.show.as.text",
           "when": "resourceExtname == .mmt || resourceExtname == .http || resourceExtname == .https || resourceExtname == .bru || resourceExtname == .bruno",
           "group": "navigation@51"
@@ -701,6 +712,9 @@
         },
         {
           "command": "multimeter.convert.toMmt"
+        },
+        {
+          "command": "multimeter.convert.toPostman"
         },
         {
           "command": "multimeter.mmt.show.as.text",

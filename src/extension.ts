@@ -6,6 +6,7 @@ import {setupChatParticipants} from './assistant/assistant';
 import {registerMcpProvider} from './mcpProvider';
 import {HistoryManager} from './historyManager';
 import {convertUriToMmt} from './mmtAPI/convertToMmt';
+import {convertUriToPostman} from './mmtAPI/convertToPostman';
 import {MmtDocumentLinkProvider} from './mmtDocumentLinkProvider';
 import {MmtEditorProvider} from './mmtEditorProvider';
 import CachePanel from './panels/CachePanel';
@@ -276,6 +277,11 @@ function registerMiscCommands(context: vscode.ExtensionContext): void {
   context.subscriptions.push(vscode.commands.registerCommand(
       'multimeter.convert.toMmt', async (uri?: vscode.Uri) => {
         await convertUriToMmt(uri);
+      }));
+
+  context.subscriptions.push(vscode.commands.registerCommand(
+      'multimeter.convert.toPostman', async (uri?: vscode.Uri) => {
+        await convertUriToPostman(uri);
       }));
 
   context.subscriptions.push(

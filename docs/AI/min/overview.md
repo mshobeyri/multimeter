@@ -2,7 +2,7 @@
 
 Prefer MCP tools when available. Offline: `testlight docs`, `testlight scaffold`, `testlight validate`.
 
-Team/IDE/CI/migration questions → topic `adoption`.
+Team/IDE/CI/migration/exitability questions → topic `adoption` (Convert to Postman = exit path).
 
 ## Types
 

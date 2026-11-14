@@ -35,7 +35,7 @@ export const faqItems: FaqItem[] = [
   {
     question: 'Can I bring Postman, OpenAPI, Bruno, or .http files?',
     answer:
-      'Yes. Import or convert Postman collections, OpenAPI/Swagger, WSDL, Bruno (.bru), .http/.https, and curl. You can also open .http and Bruno files directly, or convert them into editable .mmt APIs and tests.',
+      'Yes. Import or convert Postman collections, OpenAPI/Swagger, WSDL, Bruno (.bru), .http/.https, and curl. You can also open .http and Bruno files directly, or convert them into editable .mmt APIs and tests. To leave later, right-click a .mmt api, test, suite, or env file and choose Convert to Postman.',
   },
   {
     question: 'How do I run Multimeter in CI/CD?',

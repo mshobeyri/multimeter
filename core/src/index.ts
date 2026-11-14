@@ -40,6 +40,7 @@ export * as apiMethod from "./network/apiMethod";
 export * as docHtml from "./doc/docHtml";
 export * as docMarkdown from "./doc/docMarkdown";
 export * as postmanConvertor from "./convert/postmanConvertor";
+export * as mmtToPostmanConvertor from "./convert/mmtToPostmanConvertor";
 export * as openapiConvertor from "./convert/openapiConvertor";
 export * as wsdlConvertor from "./convert/wsdlConvertor";
 export * as importConvertor from "./convert/importConvertor";
