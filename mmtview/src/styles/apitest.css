@@ -1133,11 +1133,68 @@
 }
 
 /* Sandbox: whole tester is dimmed and framed — scratch edits, YAML still drives. */
+@property --sandbox-neon-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .apitest-root--sandbox {
+  position: relative;
   opacity: 0.85;
-  /* inset shadow follows radius (outline does not) and keeps layout stable */
-  box-shadow: inset 0 0 0 1px rgba(194, 163, 90, 0.5);
+  /* soft base frame; neon beam rides on top via ::before */
+  box-shadow: inset 0 0 0 1px rgba(194, 163, 90, 0.35);
   border-radius: 10px;
+}
+
+.apitest-root--sandbox::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  box-sizing: border-box;
+  pointer-events: none;
+  z-index: 6;
+  background: conic-gradient(
+    from var(--sandbox-neon-angle),
+    transparent 0deg,
+    rgba(194, 163, 90, 0.15) 20deg,
+    rgba(255, 233, 168, 0.55) 40deg,
+    #ffe9a8 50deg,
+    #c2a35a 58deg,
+    transparent 70deg,
+    transparent 180deg,
+    rgba(194, 163, 90, 0.15) 200deg,
+    rgba(255, 233, 168, 0.55) 220deg,
+    #ffe9a8 230deg,
+    #c2a35a 238deg,
+    transparent 250deg,
+    transparent 360deg
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 4px rgba(194, 163, 90, 0.55));
+  animation: sandbox-neon-spin 28s linear infinite;
+}
+
+@keyframes sandbox-neon-spin {
+  to {
+    --sandbox-neon-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apitest-root--sandbox::before {
+    animation: none;
+    --sandbox-neon-angle: 320deg;
+  }
 }
 
 .section-edit-toggle.apitest-header-tool-btn .codicon {
