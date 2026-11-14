@@ -19,7 +19,7 @@ export const SERVER_INSTRUCTIONS = [
   'For create, modify, validate, format, or run requests: call Multimeter MCP tools in the FIRST tool-call batch.',
   'Do not explore npm packages, testlight CLI, shell commands, or node server.js before using these tools.',
   'Do not web-search Multimeter YAML syntax — use read_documentation (pack min by default) or scaffold_test.',
-  'For IDE fit, CI, Postman/OpenAPI migration, or adoption questions: read_documentation(topic: "adoption").',
+  'For IDE fit, CI, Postman/OpenAPI migration, exitability/lock-in, or adoption questions: read_documentation(topic: "adoption").',
   'Prefer api_card over dumping full API files or OpenAPI specs. Mirror list_examples.goldenSmoke for shape.',
   'Modify = patch only. Do not rewrite the whole .mmt file unless the user explicitly asks to rewrite/regenerate.',
   'Modify workflow: optional read_documentation(min) → patch → validate → format (format required after validate).',
@@ -54,7 +54,7 @@ export function createMmtMcpServer(): McpServer {
             'overview', 'workflow', 'test', 'api', 'loadtest', 'suite', 'env', 'doc', 'adoption',
             'constraints', 'all',
           ]).optional().describe(
-              'Documentation topic. Use workflow for MCP-first edit/run steps; adoption for IDE/CI/migration fit. Defaults to overview.'),
+              'Documentation topic. Use workflow for MCP-first edit/run steps; adoption for IDE/CI/migration/exitability fit. Defaults to overview.'),
           pack: z.enum(['min', 'full']).optional().describe('min (default, low token) or full'),
         },
         annotations: {readOnlyHint: true},

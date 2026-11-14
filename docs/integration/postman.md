@@ -1,8 +1,31 @@
 # Postman
 
-Import Postman Collection v2 exports into editable Multimeter projects.
+Bidirectional with Postman: **import** Collection v2 into editable Multimeter projects, or **export** `.mmt` back to Postman as an exit path.
 
-## Run directly
+## Convert to Postman (exit)
+
+Right-click a Multimeter `.mmt` file in the Explorer and choose **Convert to Postman...**. Pick the generated file(s), a destination folder, and a collision policy (same flow as Convert to MMT).
+
+| Source | Output |
+|--------|--------|
+| `type: api` | One request in a `*.postman_collection.json` |
+| `type: test` | Ordered requests from `call` steps (imports resolved) |
+| `type: suite` | One collection; nested suites/tests → folders |
+| `type: env` | `*.postman_environment.json` only (separate from collection export) |
+
+### What maps on export
+
+- Method, URL, headers, body, auth (bearer / basic / API key; OAuth2 best-effort)
+- `e:` / `<<e:…>>` and inputs → `{{vars}}` (usages stay as variables; export env separately for values)
+- Simple expects: status, field defined, literal body/header equality
+- `setenv` (API or test step) → Postman scripts that set collection variables
+- HTTP, GraphQL, and WebSocket requests
+
+### Limits (by design)
+
+Export is **exit-grade**: the file must open cleanly in Postman. gRPC, complex steps (`js`, judge, loops), and non-simple expects are skipped with warnings — finish those manually in Postman if needed. Suite parallel groups flatten to sequential folders.
+
+## Run directly (import)
 
 See [Spec editor](./spec-editor.md) for the {{btn:list-tree}} request picker and {{btn:save-as}}.
 
@@ -19,7 +42,7 @@ Click {{btn:list-tree}}, pick a **request** or a **saved example** ({{btn:lightb
 
 Multimeter turns collection requests into `type: api` files and optional tests and suites you can run in the UI or with Testlight.
 
-## What gets generated
+## What gets generated (import)
 
 - **API files** — protocol, method, URL, headers, body, inputs, and examples when available
 - **Tests** — one test per request that imports and calls the generated API
@@ -27,7 +50,7 @@ Multimeter turns collection requests into `type: api` files and optional tests a
 - **Large collections** (5+ APIs) — also generate `multimeter.mmt` with `+/` imports
 - **Environment file** — collection variables and referenced credentials become editable variables
 
-## Postman-specific mapping
+## Postman-specific mapping (import)
 
 - Dynamic variables (`{{$guid}}`, `{{$randomEmail}}`, `{{$randomInt}}`, names, network values, company data, and Lorem text) → matching Multimeter `r:` tokens; JSON bodies parse into structured YAML with native `r:` fields (including unquoted `{{$timestamp}}` values)
 - Common `pm.variables.replaceIn('{{$timestamp}}{{$randomInt}}')` pre-request scripts → translated `setenv` steps

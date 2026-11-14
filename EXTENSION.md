@@ -162,7 +162,7 @@ Your code, tests, mocks, documentation, reports, and environment settings live i
 - Code and tests evolve together
 - Reviewable through pull requests
 - Easy to move and share
-- No platform lock-in
+- No platform lock-in — plain YAML in Git, plus Convert to Postman when you need an exit
 - AI can update code and tests together
 - Environment variables never go missing
 - Historical test results stay with the project

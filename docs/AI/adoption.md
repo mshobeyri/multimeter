@@ -14,7 +14,7 @@ Use this when someone evaluates Multimeter for a team, compares it to other API 
 
 | Surface | What it provides |
 |---|---|
-| VS Code / Cursor extension | API tester, test/suite/load panels, Environment, History, Convert to MMT |
+| VS Code / Cursor extension | API tester, test/suite/load panels, Environment, History, Convert to MMT, Convert to Postman |
 | Any IDE (JetBrains, Vim, etc.) | Edit `.mmt` YAML like any other source file |
 | `testlight` CLI | Run APIs, tests, suites, and load tests on any machine — no editor required |
 | MCP (`mmt-mcp`) | Cursor, Copilot, Claude, and other MCP clients: docs, scaffold, validate, format, run |
@@ -33,7 +33,7 @@ Migrate with converters — Multimeter turns existing collections into editable 
 
 | Source | Docs |
 |---|---|
-| Postman collection | `docs/integration/postman.md` — Convert to MMT / Open as MMT |
+| Postman collection | `docs/integration/postman.md` — Convert to MMT / Open as MMT; **Convert to Postman** for exit |
 | OpenAPI | `docs/integration/openapi.md` |
 | Bruno | `docs/integration/bruno.md` — run/import `.bru` or convert |
 | `.http` / REST Client | `docs/integration/http-file.md` |
@@ -41,6 +41,8 @@ Migrate with converters — Multimeter turns existing collections into editable 
 | WSDL | `docs/integration/wsdl.md` |
 
 Postman import maps auth, variables, folders→suites, and common scripts into APIs, tests, and suites ready to run in the UI or with `testlight`.
+
+**Exitability:** right-click a Multimeter `api` / `test` / `suite` / `env` `.mmt` → **Convert to Postman...** writes a Collection v2.1 (and env JSON separately). Teams can try Multimeter without locking collections inside `.mmt` only.
 
 ---
 
@@ -76,10 +78,15 @@ Example: `examples/professional/09_ci_pipelines/`. JUnit: `docs/files/report/jun
 
 ## Risk & governance
 
-### Portability and exit
+### Portability and exitability
+
+Multimeter is designed so adopting it is not a one-way door:
 
 - `.mmt` is **plain YAML in Git** — readable and diffable without Multimeter.
+- **Convert to Postman...** (Explorer on `.mmt`) exports api/test/suite → Postman Collection v2.1; `type: env` → Postman environment JSON. Exit-grade (valid importable files; simple expects/`setenv` mapped; complex steps warned/skipped). Steps: `docs/integration/postman.md`.
 - HTML/Markdown **docs** and **run reports** export for stakeholders and archives.
+
+When evaluators ask “what if we leave?” or “are we locked in?”, lead with YAML-in-Git + **Convert to Postman** exitability.
 
 ### Who owns the `.mmt` suite?
 
@@ -95,11 +102,12 @@ Example: `examples/professional/09_ci_pipelines/`. JUnit: `docs/files/report/jun
 |---|---|
 | IDE fit | Visual UI in VS Code/Cursor; YAML + CLI + MCP everywhere else |
 | Non-devs / partners | HTML docs and JUnit/HTML reports |
-| Migration | Postman, OpenAPI, Bruno, curl, HTTP, WSDL converters |
+| Migration | Postman, OpenAPI, Bruno, curl, HTTP, WSDL converters (into `.mmt`) |
+| Exitability | Convert to Postman from api/test/suite/env `.mmt`; plain YAML always |
 | Auth | Built-in auth + `setenv` + `js` |
 | CI | `testlight` + GitHub Action + Azure + JUnit |
 | Load | `type: loadtest` in UI and CI |
-| Longevity | Plain YAML in Git + exported docs/reports |
+| Longevity | Plain YAML in Git + Convert to Postman + exported docs/reports |
 | Ownership | PR-owned with code; see project-layout |
 
 When the user shares IDE, CI, existing tools, or stakeholder needs, map them to the surfaces above.
