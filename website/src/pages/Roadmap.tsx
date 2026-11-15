@@ -193,6 +193,7 @@ const roadmap: RoadmapMonth[] = [
       { title: 'Anonymous usage telemetry (feature flags only; no API payloads)', status: 'done' },
       { title: 'Telemetry opt-out (VS Code + multimeter.telemetry.enabled)', status: 'done' },
       { title: 'Docs and privacy wording for usage telemetry', status: 'done' },
+      { title: 'Convert .mmt APIs/tests to Postman collection', status: 'in-progress' },
       { title: 'Response schema / contract validation (JSON Schema)', status: 'planned' },
       { title: 'Outbound HTTP(S) proxy support', status: 'planned' },
       { title: 'Cookie jar / session persistence across requests', status: 'planned' },
