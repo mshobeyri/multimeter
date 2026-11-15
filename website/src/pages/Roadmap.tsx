@@ -184,6 +184,15 @@ const roadmap: RoadmapMonth[] = [
       { title: 'File-backed env values (./….mmt live variables)', status: 'done' },
       { title: 'Views dock for relocating Multimeter panels', status: 'done' },
       { title: 'Stable 1.44.5 release (extension, Testlight CLI, MCP)', status: 'done' },
+    ],
+  },
+  {
+    month: 'November',
+    year: 2026,
+    items: [
+      { title: 'Anonymous usage telemetry (feature flags only; no API payloads)', status: 'done' },
+      { title: 'Telemetry opt-out (VS Code + multimeter.telemetry.enabled)', status: 'done' },
+      { title: 'Docs and privacy wording for usage telemetry', status: 'done' },
       { title: 'Response schema / contract validation (JSON Schema)', status: 'planned' },
       { title: 'Outbound HTTP(S) proxy support', status: 'planned' },
       { title: 'Cookie jar / session persistence across requests', status: 'planned' },

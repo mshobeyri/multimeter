@@ -5,6 +5,7 @@ import Downloads from './pages/Downloads'
 import Demos from './pages/Demos'
 import Tutorials from './pages/Tutorials'
 import Roadmap from './pages/Roadmap'
+import Privacy from './pages/Privacy'
 import TestServer from './pages/TestServer'
 import ComparePage, { CompareIndexPage } from './pages/ComparePage'
 import WhyAi from './pages/WhyAi'
@@ -22,6 +23,7 @@ function App() {
         <Route path="/demos" element={<Demos />} />
         <Route path="/tutorials" element={<Tutorials />} />
         <Route path="/roadmap" element={<Roadmap />} />
+        <Route path="/privacy" element={<Privacy />} />
         <Route path="/compare" element={<CompareIndexPage />} />
         <Route path="/compare/:slug" element={<ComparePage />} />
         <Route path="/why-ai" element={<WhyAi />} />

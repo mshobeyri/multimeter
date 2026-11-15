@@ -24,6 +24,10 @@ See [MCP](./features/mcp/index.md) and [Downloads](/downloads).
 
 Install Testlight for terminal and CI runs — see [Testlight — Install](./features/testlight/install.md).
 
+## Telemetry
+
+The extension may send anonymous usage counts (feature flags only — not your APIs). See [Telemetry](./features/telemetry.md) to opt out.
+
 ## Next steps
 
 - [Getting Started](./quick-start.md) — run your first request

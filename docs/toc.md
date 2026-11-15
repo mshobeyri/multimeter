@@ -116,6 +116,7 @@
 - [Run in CI](./tasks/run-in-ci.md)
 
 ### Features
+- [Telemetry](./features/telemetry.md)
 - [Logging](./features/logging.md)
   - [Log levels](./features/logging/log-levels.md)
   - [Where logs appear](./features/logging/where-logs-appear.md)

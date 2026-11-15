@@ -46,7 +46,7 @@ All in the same tool. No migration. No second product.
 **Simple by default**
 
 - ✔️ Git-native, file-based YAML
-- ✔️ Lightweight — no account, no cloud lock-in
+- ✔️ Lightweight — no account, no cloud lock-in (optional anonymous usage counts only; never your API payloads — see [Telemetry](https://mmt.dev/docs/features/telemetry))
 - ✔️ Collaboration through pull requests, like code
 - ✔️ The same files locally and in CI
 

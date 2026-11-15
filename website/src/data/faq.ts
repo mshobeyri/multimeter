@@ -25,7 +25,7 @@ export const faqItems: FaqItem[] = [
   {
     question: 'Is Multimeter free? Do I need an account?',
     answer:
-      'Yes, free under Apache 2.0. No signup, no cloud workspace, no telemetry of your APIs. Install the extension and use your Git repo for sharing and access control.',
+      'Yes, free under Apache 2.0. No signup and no cloud workspace for your collections. Optional anonymous usage counts (feature flags only — never your APIs or payloads) can be turned off in settings. Install the extension and use your Git repo for sharing and access control.',
   },
   {
     question: 'What is a .mmt file?',
@@ -60,7 +60,7 @@ export const faqItems: FaqItem[] = [
   {
     question: 'Does Multimeter send my API data anywhere?',
     answer:
-      'No by default — runs are local or in your CI. Optional AI judge steps call only the model provider you configure (e.g. Ollama or a cloud LLM) when you add a type: judge file. MCP and the extension do not ship your collections to mmt.dev.',
+      'Your requests, responses, env values, and .mmt contents stay local (or in your CI). The extension may send anonymous usage counts — for example that you ran an API and whether inputs/outputs were used — never URLs or payloads. Disable with telemetry.telemetryLevel or multimeter.telemetry.enabled. Optional AI judge steps call only the model provider you configure. Details: https://mmt.dev/docs/features/telemetry',
   },
   {
     question: 'What about mocks, API docs, and reports?',
