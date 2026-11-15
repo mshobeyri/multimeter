@@ -1,0 +1,115 @@
+{
+  "events": [
+    {
+      "name": "extension.activate",
+      "description": "Extension host activated"
+    },
+    {
+      "name": "editor.open",
+      "description": "User opened an MMT (or Multimeter-backed) editor",
+      "properties": {
+        "fileType": "api | test | suite | env | other"
+      }
+    },
+    {
+      "name": "run.api",
+      "description": "API run/send completed (not cancelled)",
+      "properties": {
+        "success": "true | false",
+        "protocol": "http | ws | grpc | graphql | other",
+        "hasInputs": "true | false",
+        "hasEnv": "true | false",
+        "hasBody": "true | false",
+        "hasHeaders": "true | false",
+        "hasQuery": "true | false",
+        "authKind": "none | bearer | basic | cert | apikey | oauth2 | other",
+        "hasOutputs": "true | false",
+        "extractKind": "none | jsonpath | xpath | regex | other",
+        "complexity": "basic | standard"
+      },
+      "measurements": {
+        "durationMs": "run duration in milliseconds"
+      }
+    },
+    {
+      "name": "run.test",
+      "description": "Test run completed (not cancelled)",
+      "properties": {
+        "success": "true | false",
+        "hasInputs": "true | false",
+        "hasEnv": "true | false",
+        "hasOutputs": "true | false",
+        "usesExpect": "true | false",
+        "usesCheck": "true | false",
+        "usesRandom": "true | false",
+        "usesCurrent": "true | false",
+        "usesCapture": "true | false",
+        "usesImport": "true | false",
+        "extractKind": "none | jsonpath | xpath | regex | other",
+        "assertCountBucket": "0 | 1 | 2-5 | 6+",
+        "stepCountBucket": "1 | 2-5 | 6-20 | 21+",
+        "complexity": "basic | standard"
+      },
+      "measurements": {
+        "durationMs": "run duration in milliseconds"
+      }
+    },
+    {
+      "name": "run.suite",
+      "description": "Suite run completed (not cancelled)",
+      "properties": {
+        "success": "true | false",
+        "partial": "true | false",
+        "hasInputs": "true | false",
+        "hasEnv": "true | false",
+        "hasOutputs": "true | false",
+        "itemCountBucket": "1 | 2-5 | 6-20 | 21+",
+        "complexity": "basic | standard"
+      },
+      "measurements": {
+        "durationMs": "run duration in milliseconds"
+      }
+    },
+    {
+      "name": "convert.from_postman",
+      "description": "Convert Postman collection/environment to MMT",
+      "properties": {
+        "success": "true | false"
+      }
+    },
+    {
+      "name": "convert.from_openapi",
+      "description": "Convert OpenAPI/Swagger to MMT",
+      "properties": {
+        "success": "true | false"
+      }
+    },
+    {
+      "name": "convert.to_postman",
+      "description": "Convert MMT to Postman (when available)",
+      "properties": {
+        "success": "true | false"
+      }
+    },
+    {
+      "name": "mcp.tool",
+      "description": "MCP tool invocation",
+      "properties": {
+        "toolName": "allowlisted tool id or other",
+        "success": "true | false"
+      }
+    },
+    {
+      "name": "error",
+      "description": "Extension error category (no PII / no payloads)",
+      "properties": {
+        "area": "run | parse | network | convert | mcp | editor",
+        "code": "short enum-like code"
+      }
+    }
+  ],
+  "notes": [
+    "Never send URLs, headers, bodies, env/input/output names or values, file paths, or stack traces.",
+    "Unique users are approximated via VS Code machine id attached by @vscode/extension-telemetry."
+  ]
+}

@@ -3,6 +3,8 @@ import * as vscode from 'vscode';
 
 import {importConvertor} from 'mmt-core';
 
+import {sendError, trackConvert} from '../telemetry/telemetry';
+
 type ConvertedMmtFile = importConvertor.ConvertedMmtFile;
 type CollisionPolicy = 'skip' | 'overwrite' | 'rename';
 
@@ -23,14 +25,19 @@ export async function convertUriToMmt(uri?: vscode.Uri): Promise<void> {
     const rawFile = Buffer.from(bytes).toString('utf8');
     result = importConvertor.convertToMmt(rawFile, {sourcePath: targetUri.fsPath});
   } catch (error) {
+    trackConvertFromKind(undefined, false);
+    sendError('convert', 'convert_failed');
     vscode.window.showErrorMessage(formatError(error));
     return;
   }
 
   if (result.files.length === 0) {
+    trackConvertFromKind(result.sourceKind, false);
     vscode.window.showWarningMessage('No MMT files were generated from the selected file.');
     return;
   }
+
+  trackConvertFromKind(result.sourceKind, true);
 
   if (result.warnings.length > 0) {
     vscode.window.showWarningMessage(
@@ -183,4 +190,16 @@ async function exists(uri: vscode.Uri): Promise<boolean> {
 function formatError(error: unknown): string {
   const message = error && typeof error === 'object' && 'message' in error ? String((error as any).message) : String(error);
   return message.startsWith('Unsupported import file') ? message : `Failed to convert file: ${message}`;
+}
+
+function trackConvertFromKind(
+    sourceKind: importConvertor.ImportSourceKind|undefined,
+    success: boolean): void {
+  if (sourceKind === 'postman') {
+    trackConvert({direction: 'from_postman', success});
+    return;
+  }
+  if (sourceKind === 'openapi') {
+    trackConvert({direction: 'from_openapi', success});
+  }
 }

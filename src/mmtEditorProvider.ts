@@ -16,6 +16,7 @@ import {buildThemeTokenMessage} from './themeTokenColors';
 import {getOnboarding, coachTargetForTask, OnboardingTaskId} from './onboarding';
 import {resolveSourceFormat} from './mmtSourceFormat';
 import {brunoWebviewExtras} from './brunoCollection';
+import {trackEditorOpen} from './telemetry/telemetry';
 
 export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
   private static instance: MmtEditorProvider|null = null;
@@ -176,6 +177,11 @@ export class MmtEditorProvider implements vscode.CustomTextEditorProvider {
     // Add this panel to the active panels set
     this.activeWebviewPanels.add(webviewPanel);
     this.lastOpened = {document, panel: webviewPanel};
+    try {
+      trackEditorOpen(document.getText());
+    } catch {
+      // ignore telemetry failures
+    }
     getOnboarding()?.onOpenedMmt();
 
     // Remove panel when it's disposed

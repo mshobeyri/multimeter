@@ -13,6 +13,7 @@ import {
   handleSuggestAssertions,
   handleValidate,
 } from './tools/handlers';
+import {withMcpTelemetry} from './telemetry';
 
 export const SERVER_INSTRUCTIONS = [
   'Multimeter MCP is the primary interface for all .mmt file work in VS Code Copilot.',
@@ -59,7 +60,7 @@ export function createMmtMcpServer(): McpServer {
         },
         annotations: {readOnlyHint: true},
       },
-      async (args) => handleReadDocumentation(args),
+      async (args) => withMcpTelemetry('read_documentation', () => handleReadDocumentation(args)),
   );
 
   server.registerTool(
@@ -79,7 +80,7 @@ export function createMmtMcpServer(): McpServer {
         },
         annotations: {readOnlyHint: true},
       },
-      async (args) => handleListExamples(args),
+      async (args) => withMcpTelemetry('list_examples', () => handleListExamples(args)),
   );
 
   server.registerTool(
@@ -99,7 +100,7 @@ export function createMmtMcpServer(): McpServer {
         },
         annotations: {readOnlyHint: true},
       },
-      async (args) => handleDiscoverApi(args),
+      async (args) => withMcpTelemetry('discover_api', () => handleDiscoverApi(args)),
   );
 
   server.registerTool(
@@ -118,7 +119,7 @@ export function createMmtMcpServer(): McpServer {
         },
         annotations: {readOnlyHint: true},
       },
-      async (args) => handleApiCard(args),
+      async (args) => withMcpTelemetry('api_card', () => handleApiCard(args)),
   );
 
   server.registerTool(
@@ -140,7 +141,7 @@ export function createMmtMcpServer(): McpServer {
         },
         annotations: {readOnlyHint: true},
       },
-      async (args) => handleScaffoldTest(args),
+      async (args) => withMcpTelemetry('scaffold_test', () => handleScaffoldTest(args)),
   );
 
   server.registerTool(
@@ -164,7 +165,7 @@ export function createMmtMcpServer(): McpServer {
         },
         annotations: {readOnlyHint: true},
       },
-      async (args) => handleSuggestAssertions(args),
+      async (args) => withMcpTelemetry('suggest_assertions', () => handleSuggestAssertions(args)),
   );
 
   server.registerTool(
@@ -186,7 +187,7 @@ export function createMmtMcpServer(): McpServer {
         },
         annotations: {readOnlyHint: true},
       },
-      async (args) => handleValidate(args),
+      async (args) => withMcpTelemetry('validate', () => handleValidate(args)),
   );
 
   server.registerTool(
@@ -204,7 +205,7 @@ export function createMmtMcpServer(): McpServer {
         },
         annotations: {readOnlyHint: true},
       },
-      async (args) => handleFormat(args),
+      async (args) => withMcpTelemetry('format', () => handleFormat(args)),
   );
 
   server.registerTool(
@@ -224,7 +225,7 @@ export function createMmtMcpServer(): McpServer {
           quiet: z.boolean().optional().describe('Reduce run logs in the response'),
         },
       },
-      async (args) => handleRun(args),
+      async (args) => withMcpTelemetry('run', () => handleRun(args)),
   );
 
   for (const guide of GUIDE_RESOURCES) {

@@ -24,8 +24,10 @@ import {TEMP_MMT_SCHEME} from './tempFiles/tempMmtUri';
 import {openUntitledGalleryMmt} from './untitledGalleryMmt';
 import {loadWorkspaceEnvFile} from './workspaceEnvLoader';
 import {isSpecFamilyPath} from './mmtSourceFormat';
+import {initTelemetry} from './telemetry/telemetry';
 
 export function activate(context: vscode.ExtensionContext) {
+  initTelemetry(context);
   const onboarding = initOnboarding(context);
   const historyManager = new HistoryManager(context.globalStorageUri);
   const tempFiles = new TempFilesController(context);

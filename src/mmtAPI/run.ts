@@ -32,6 +32,12 @@ import {expandCurrentTokensInPath} from 'mmt-core/tokens/Current';
 import {installGitCurrentSnapshotProvider} from './gitCommitShort';
 import {ensureGitCurrentSnapshot} from 'mmt-core/tokens/Current';
 import {resolveWorkspaceEnvMap} from 'mmt-core/env/workspaceEnvVars';
+import {
+  sendError,
+  trackRunApi,
+  trackRunSuite,
+  trackRunTest,
+} from '../telemetry/telemetry';
 
 const logOutputChannel =
     vscode.window.createOutputChannel('Multimeter', {log: true});
@@ -377,6 +383,7 @@ export async function handleRunCurrentDocument(
       message?.resolvedRequest && typeof message.resolvedRequest === 'object' ?
         message.resolvedRequest as Record<string, unknown> :
         null;
+  const runStartedAt = Date.now();
 
   try {
     installGitCurrentSnapshotProvider(
@@ -452,6 +459,19 @@ export async function handleRunCurrentDocument(
       }
     }
 
+    if (!cancelled && isCurrentRun()) {
+      const durationMs = Date.now() - runStartedAt;
+      const success = Boolean(result?.success);
+      const manualInputs = message?.inputs?.manualInputs || {};
+      if (docType === 'api') {
+        trackRunApi({rawFile, success, durationMs, manualInputs});
+      } else if (docType === 'test') {
+        trackRunTest({rawFile, success, durationMs, manualInputs});
+      } else if (docType === 'suite') {
+        trackRunSuite({rawFile, success, durationMs, partial: false});
+      }
+    }
+
     if (uiReporter.notifyHost && !cancelled) {
       if (result.syntaxError) {
         const errorMsg = result.errors?.[0] || 'Generated code has a syntax error';
@@ -488,6 +508,7 @@ export async function handleRunCurrentDocument(
       return;
     }
     const msg = err?.message || String(err);
+    sendError('run', 'run_exception');
     logToOutput('error', `Failed to run ${fileName}: ${msg}`);
     postApiRunResult(webviewPanel, document.uri.toString(), null, false);
     uiReporter.onCancelled({
@@ -664,13 +685,23 @@ export async function handleRunSuite(
         forwardLog,
       });
 
+      const loadSuccess = Boolean((runOutcome as any)?.result?.success);
+      if (!controller.signal.aborted) {
+        trackRunSuite({
+          rawFile: rawSuite,
+          success: loadSuccess,
+          durationMs: Date.now() - startedAt,
+          partial: false,
+        });
+      }
+
       uiReporter.onRunEnd({
         command: 'suiteRunEnd',
         suiteRunId,
         filePath: document.uri.fsPath,
         netConfigApplied,
         cancelled: controller.signal.aborted,
-        success: Boolean((runOutcome as any)?.result?.success),
+        success: loadSuccess,
         load: (runOutcome as any)?.loadResult,
       });
       return;
@@ -780,6 +811,15 @@ export async function handleRunSuite(
       forwardLog,
     });
 
+    if (!controller.signal.aborted) {
+      trackRunSuite({
+        rawFile: rawSuite,
+        success: Boolean((runOutcome as any)?.result?.success),
+        durationMs: Date.now() - startedAt,
+        partial: Boolean(bundleTarget),
+      });
+    }
+
     uiReporter.onRunEnd({
       command: 'suiteRunEnd',
       suiteRunId,
@@ -788,6 +828,9 @@ export async function handleRunSuite(
       cancelled: controller.signal.aborted,
     });
   } catch (err: any) {
+    if (!controller.signal.aborted) {
+      sendError('run', 'suite_exception');
+    }
     uiReporter.onRunEnd({
       command: 'suiteRunEnd',
       suiteRunId,

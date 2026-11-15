@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+import {TELEMETRY_CONNECTION_STRING} from './telemetry/connectionString';
+
 type McpStdioServerDefinitionInstance = {
   cwd?: vscode.Uri;
 };
@@ -45,6 +47,13 @@ export function registerMcpProvider(context: vscode.ExtensionContext): void {
           MMT_EXAMPLES_DIR: examplesDir,
           MMT_WORKSPACE_ROOT: workspaceRoot,
           NODE_PATH: nodeModulesPath,
+          MMT_TELEMETRY_CONNECTION_STRING: TELEMETRY_CONNECTION_STRING || '',
+          MMT_TELEMETRY_ENABLED:
+              (vscode.env.isTelemetryEnabled &&
+               vscode.workspace.getConfiguration('multimeter')
+                   .get<boolean>('telemetry.enabled', true)) ?
+              '1' :
+              '0',
         },
         version,
       );
