@@ -90,6 +90,7 @@ jobs:
           echo "Publishing $VSIX to Marketplace as pre-release (publisher $(publisher))"
           vsce publish --pre-release \
             --packagePath "$VSIX" \
+            --allow-proposed-apis chatProvider \
             --allow-package-all-secrets \
             --allow-package-env-file
         displayName: Publish pre-release to Marketplace
