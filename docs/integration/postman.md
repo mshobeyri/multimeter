@@ -16,10 +16,12 @@ Right-click a Multimeter `.mmt` file in the Explorer and choose **Convert to Pos
 ### What maps on export
 
 - Method, URL, headers, body, auth (bearer / basic / API key; OAuth2 best-effort)
-- `e:` / `<<e:…>>` and inputs → `{{vars}}` (usages stay as variables; export env separately for values)
-- Simple expects: status, field defined, literal body/header equality
+- Body formats: JSON/text/xml raw, `urlencoded`, `multipart` (file parts need re-attach if paths break), `binary` as Postman file body, GraphQL mode
+- `e:` / `<<e:…>>` and inputs → `{{vars}}` (declared as empty collection variables; export env separately for values)
+- Simple expects: status, field defined, literal body/header equality (including `headers.content-type` and numeric path segments like `body.items.0.id`)
 - `setenv` (API or test step) → Postman scripts that set collection variables
 - HTTP, GraphQL, and WebSocket requests
+- `if` then/else branches are both exported flattened (condition not mapped)
 
 ### Limits (by design)
 
