@@ -2,6 +2,39 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.50.2]
+
+Stable release of the 1.50.x line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.50.2` on `@latest`.
+
+### Convert / export
+
+- Add **Convert to Postman** exit export for `.mmt` files (api/test/suite → Collection v2.1; env → Postman environment JSON)
+
+### API tester
+
+- Add isolated **Sandbox** request mode beside Edit and Telescope (icon dropdown)
+- Sandbox clones the current YAML for Send without writing the file; YAML edits and **Reset** re-clone from the file
+- Soft sand-yellow frame (curved, 20% opacity) while Sandbox is active; slow dual neon border animation
+- Fix sandbox body resolve lagging one keystroke behind live YAML edits
+- Add YAML context menu to copy trimmed request YAML and a platform-appropriate curl command
+- Document request modes (Edit / Telescope / Sandbox)
+
+### Telemetry
+
+- Add anonymous extension usage telemetry via App Insights (feature flags only; no API payloads)
+- Document opt-out and privacy on docs, FAQ, roadmap, and privacy pages
+
+### Website / docs
+
+- Emphasize reviewable YAML and declarative test flows in hero and AI agent docs
+- Add adoption AI docs for IDE, CI, and migration fit
+- Show Multimeter demo as an inline README video; nudge hero test.mmt tab clicks
+- Update roadmap
+
+### Release
+
+- Allow `chatProvider` proposed API when publishing to the VS Code Marketplace
+
 ## [1.50.1-pre]
 
 Pre-release. VS Code extension `1.50.1`; Testlight CLI and MCP `1.50.1-pre` on `@pre`.
