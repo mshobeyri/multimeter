@@ -22,14 +22,9 @@
   </p>
 </div>
 
-<div align="center">
-  <video src="https://github.com/user-attachments/assets/d7311538-5db2-4c86-87cd-abcac7a4cfc7" width="1270" height="720" controls>
-    <a href="https://github.com/user-attachments/assets/d7311538-5db2-4c86-87cd-abcac7a4cfc7">Watch the Multimeter demo</a>
-  </video>
-</div>
-
-[Download the video (MP4)](https://github.com/mshobeyri/multimeter/raw/dev/res/media/multimeter-demo.mp4)
-· [More demos](https://mmt.dev/demos)
+<p align="center">
+  <img src="res/intro.png" alt="Multimeter — Get Started, YAML, and API tester" width="1200" />
+</p>
 
 ## 🚀 Start with a request. Grow into a platform.
 ---
