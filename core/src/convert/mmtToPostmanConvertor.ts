@@ -3,6 +3,7 @@
  * or Postman environment JSON. Exit-grade: valid files over complete fidelity.
  */
 import {APIData, AuthConfig} from '../data/APIData';
+import {requestFormat} from '../data/CommonData';
 import {EnvData, EnvPresetGroup, EnvVariableValue} from '../data/EnvData';
 import {ExpectMap, ExpectValue, splitCheckOperatorPrefix, TestData, TestFlowStep} from '../data/TestData';
 import {fileType} from '../jser/JSerHelper';
@@ -153,7 +154,11 @@ const MMT_RANDOM_TO_POSTMAN: Record<string, string> = (() => {
   return preferred;
 })();
 
-const SIMPLE_PATH_RE = /^(body|headers|header|status|statusCode|status_code)(\.[A-Za-z_][A-Za-z0-9_]*)*$/;
+/** Dotted paths: allow hyphens (headers.content-type) and numeric segments (body.items.0.id). */
+const PATH_SEGMENT_RE = '(?:[A-Za-z_][A-Za-z0-9_-]*|\\d+)';
+const SIMPLE_PATH_RE = new RegExp(
+    `^(body|headers|header|status|statusCode|status_code)(\\.${PATH_SEGMENT_RE})*$`);
+const BARE_DOT_PATH_RE = new RegExp(`^[A-Za-z_][A-Za-z0-9_-]*(?:\\.${PATH_SEGMENT_RE})*$`);
 const TOKEN_WHOLE_RE = /^(e|i|r|o|c):([A-Za-z_][\w.-]*)$/;
 const EMBEDDED_TOKEN_RE = /<<\s*([eirc]):([A-Za-z_][\w.-]*)\s*>>/g;
 const BARE_TOKEN_RE = /\b([eirc]):([A-Za-z_][\w.-]*)\b/g;
@@ -367,6 +372,89 @@ function mapAuth(auth: AuthConfig | undefined, sink: WarningSink): Record<string
   return undefined;
 }
 
+function formFieldValue(value: unknown, sink: WarningSink, inputs?: Record<string, unknown>): string {
+  if (value === undefined || value === null) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    return translateStringWithInputs(value, sink, inputs);
+  }
+  if (typeof value === 'number' || typeof value === 'boolean') {
+    return String(value);
+  }
+  return JSON.stringify(translateDeep(value, sink, inputs));
+}
+
+function mapUrlencodedBody(
+    body: unknown, sink: WarningSink, inputs?: Record<string, unknown>): Record<string, unknown> {
+  const entries: Array<{key: string; value: string}> = [];
+  if (body && typeof body === 'object' && !Array.isArray(body)) {
+    for (const [key, value] of Object.entries(body as Record<string, unknown>)) {
+      entries.push({key, value: formFieldValue(value, sink, inputs)});
+    }
+  } else if (Array.isArray(body)) {
+    for (const part of body) {
+      if (!part || typeof part !== 'object') {
+        continue;
+      }
+      const row = part as Record<string, unknown>;
+      const key = String(row.name ?? row.key ?? '');
+      if (!key) {
+        continue;
+      }
+      entries.push({key, value: formFieldValue(row.value, sink, inputs)});
+    }
+  } else if (typeof body === 'string') {
+    pushWarn(sink, 'urlencoded body was a string — exported as raw text');
+    return {
+      mode: 'raw',
+      raw: translateStringWithInputs(body, sink, inputs),
+      options: {raw: {language: 'text'}},
+    };
+  }
+  return {mode: 'urlencoded', urlencoded: entries};
+}
+
+function mapMultipartBody(
+    body: unknown, sink: WarningSink, inputs?: Record<string, unknown>): Record<string, unknown> {
+  const formdata: Array<Record<string, unknown>> = [];
+  if (Array.isArray(body)) {
+    for (const part of body) {
+      if (!part || typeof part !== 'object') {
+        continue;
+      }
+      const row = part as Record<string, unknown>;
+      const key = String(row.name ?? row.key ?? '');
+      if (!key) {
+        continue;
+      }
+      if (typeof row.file === 'string' && row.file) {
+        formdata.push({
+          key,
+          type: 'file',
+          src: translateStringWithInputs(row.file, sink, inputs),
+        });
+        pushWarn(
+            sink,
+            `multipart file part "${key}" references ${row.file} — re-attach the file in Postman if the path does not resolve`);
+      } else {
+        formdata.push({
+          key,
+          type: 'text',
+          value: formFieldValue(row.value, sink, inputs),
+        });
+      }
+    }
+  } else if (body && typeof body === 'object') {
+    for (const [key, value] of Object.entries(body as Record<string, unknown>)) {
+      formdata.push({key, type: 'text', value: formFieldValue(value, sink, inputs)});
+    }
+  } else {
+    pushWarn(sink, 'multipart body shape not recognized — exported empty formdata');
+  }
+  return {mode: 'formdata', formdata};
+}
+
 function mapBody(
     api: APIData, sink: WarningSink, inputs?: Record<string, unknown>): Record<string, unknown> | undefined {
   if (api.protocol === 'graphql' || api.graphql) {
@@ -383,15 +471,54 @@ function mapBody(
   if (api.body === undefined || api.body === null || api.body === '') {
     return undefined;
   }
+
+  const format = requestFormat(api.format);
+
+  if (format === 'urlencoded') {
+    return mapUrlencodedBody(api.body, sink, inputs);
+  }
+  if (format === 'multipart') {
+    return mapMultipartBody(api.body, sink, inputs);
+  }
+  if (format === 'binary') {
+    if (typeof api.body === 'string') {
+      pushWarn(
+          sink,
+          `binary body references ${api.body} — re-attach the file in Postman if the path does not resolve`);
+      return {
+        mode: 'file',
+        file: {src: translateStringWithInputs(api.body, sink, inputs)},
+      };
+    }
+    pushWarn(sink, 'binary body was not a file path — exported as raw');
+  }
+
   if (typeof api.body === 'object') {
     const translated = translateDeep(api.body, sink, inputs);
+    const language = format === 'xml' || format === 'xmle' ? 'xml' :
+        (format === 'text' || format === 'html' ? 'text' : 'json');
+    if (language !== 'json') {
+      // Object bodies for xml/text are uncommon; still stringify for a valid request.
+      return {
+        mode: 'raw',
+        raw: typeof translated === 'string' ? translated : JSON.stringify(translated, null, 2),
+        options: {raw: {language}},
+      };
+    }
     return {
       mode: 'raw',
       raw: JSON.stringify(translated, null, 2),
       options: {raw: {language: 'json'}},
     };
   }
+
   const raw = translateStringWithInputs(String(api.body), sink, inputs);
+  if (format === 'xml' || format === 'xmle') {
+    return {mode: 'raw', raw, options: {raw: {language: 'xml'}}};
+  }
+  if (format === 'text' || format === 'html' || format === 'none') {
+    return {mode: 'raw', raw, options: {raw: {language: 'text'}}};
+  }
   const looksJson = raw.trim().startsWith('{') || raw.trim().startsWith('[');
   return {
     mode: 'raw',
@@ -404,14 +531,21 @@ function jsStringLiteral(value: unknown): string {
   return JSON.stringify(value);
 }
 
+function pathSegmentAccess(segment: string): string {
+  if (/^\d+$/.test(segment)) {
+    return `[${segment}]`;
+  }
+  return `[${jsStringLiteral(segment)}]`;
+}
+
 function jsonPathExpr(field: string): string {
-  // field like body.token → json.token; status → handled separately
+  // field like body.token → json["token"]; body.items.0.id → json["items"][0]["id"]
   if (field === 'body') {
     return 'json';
   }
   if (field.startsWith('body.')) {
     const parts = field.slice(5).split('.');
-    return 'json' + parts.map((p) => `[${jsStringLiteral(p)}]`).join('');
+    return 'json' + parts.map(pathSegmentAccess).join('');
   }
   if (field.startsWith('headers.') || field.startsWith('header.')) {
     const name = field.split('.').slice(1).join('.');
@@ -543,8 +677,8 @@ function setenvExprToJs(expression: string, sink: WarningSink): string | undefin
     return undefined;
   }
   if (!isSimpleExpectField(path) && path !== 'body' && !path.startsWith('body.')) {
-    // allow outputs-style paths like body.token
-    if (!/^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$/.test(path)) {
+    // allow outputs-style paths like body.token / items.0.id
+    if (!BARE_DOT_PATH_RE.test(path)) {
       pushWarn(sink, `Skipped complex setenv expression: ${expression}`);
       return undefined;
     }
@@ -782,8 +916,13 @@ function walkTestSteps(
         continue;
       }
       if (stepType === 'if') {
-        pushWarn(sink, 'if step: exporting then-branch steps only (condition not mapped)');
+        pushWarn(sink, 'if step: exporting then-branch without condition');
         await walkTestSteps((step as any).steps, imports, ownerPath, projectRoot, fileLoader, sink, items);
+        const elseSteps = (step as any).else as TestFlowStep[] | undefined;
+        if (Array.isArray(elseSteps) && elseSteps.length) {
+          pushWarn(sink, 'if else-branch: exporting steps without condition (flattened after then)');
+          await walkTestSteps(elseSteps, imports, ownerPath, projectRoot, fileLoader, sink, items);
+        }
         continue;
       }
       if (stepType === 'for' || stepType === 'repeat') {
@@ -1005,8 +1144,37 @@ function envToPostmanFiles(env: EnvData, sourcePath: string | undefined, sink: W
   return files;
 }
 
+function collectMustacheVars(value: unknown, into: Set<string>): void {
+  if (typeof value === 'string') {
+    const re = /\{\{\s*([^{}]+?)\s*\}\}/g;
+    let match: RegExpExecArray | null;
+    while ((match = re.exec(value))) {
+      const name = match[1].trim();
+      // Skip Postman dynamics ({{$guid}}) and empty.
+      if (!name || name.startsWith('$')) {
+        continue;
+      }
+      into.add(name);
+    }
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (const entry of value) {
+      collectMustacheVars(entry, into);
+    }
+    return;
+  }
+  if (value && typeof value === 'object') {
+    for (const entry of Object.values(value as Record<string, unknown>)) {
+      collectMustacheVars(entry, into);
+    }
+  }
+}
+
 function wrapCollection(name: string, items: PostmanItem[], description?: string): Record<string, unknown> {
-  return {
+  const variables = new Set<string>();
+  collectMustacheVars(items, variables);
+  const collection: Record<string, unknown> = {
     info: {
       name,
       description: description || 'Exported from Multimeter',
@@ -1014,6 +1182,10 @@ function wrapCollection(name: string, items: PostmanItem[], description?: string
     },
     item: items,
   };
+  if (variables.size > 0) {
+    collection.variable = [...variables].sort().map((key) => ({key, value: ''}));
+  }
+  return collection;
 }
 
 /**
