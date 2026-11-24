@@ -2,6 +2,32 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.51.0-pre]
+
+Pre-release. VS Code extension `1.51.0`; Testlight CLI and MCP `1.51.0-pre` on `@pre`.
+
+### Suite hierarchy
+
+- Click the fail icon on a suite tree row to open the boxes down to the first failed case
+- Add a hover animation to the clickable fail icon
+- Fix the passed count not resetting on a new run (sometimes seen on Windows) by ignoring stale async report-spill results
+
+### Performance (large suites)
+
+- Speed up the skipped count for suites with thousands of skipped items
+- Cache report size estimates so spill checks no longer re-serialize every flush
+- Batch hierarchy UI updates while loading so the tree is not rebuilt for every response
+- Limit hierarchy requests to the extension host to 8 at a time, with first sections served before deep loads
+- Write spilled reports to storage in batches instead of one node at a time
+
+### Convert / export
+
+- Harden **Convert to Postman** export fidelity and coverage
+
+### Website / docs
+
+- Restore the intro image on the Marketplace extension readme
+
 ## [1.50.2]
 
 Stable release of the 1.50.x line. VS Code extension, Testlight CLI (`mmt-testlight`), and MCP (`mmt-mcp`) are all `1.50.2` on `@latest`.
