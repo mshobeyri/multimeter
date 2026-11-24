@@ -55,6 +55,39 @@ describe('suiteRunDataStore', () => {
     });
   });
 
+  it('counts nested skipped ids once per top skipped ancestor, with unrelated prefixes ignored', () => {
+    const store = createSuiteRunDataStore();
+    store.patchRunState({
+      'suite-node:0': 'skipped',
+      'suite-node:0.1.2': 'skipped',
+      'suite-node:1.0': 'skipped',
+      'suite-node:1.0.5': 'skipped',
+      'suite-node:10': 'skipped',
+      'suite-node:11.0': 'skipped',
+    });
+
+    // 0 (covers 0.1.2), 1.0 (covers 1.0.5), 10, 11.0. "suite-node:1" is not a skipped ancestor of 10.
+    expect(store.getOverview().skipped).toBe(4);
+  });
+
+  it('keeps run-state updates fast with thousands of skipped nodes', () => {
+    const store = createSuiteRunDataStore();
+    const skipped: Record<string, 'skipped'> = {};
+    for (let i = 0; i < 5000; i++) {
+      skipped[`suite-node:0.${i}`] = 'skipped';
+    }
+    store.patchRunState(skipped);
+
+    const startedAt = Date.now();
+    for (let i = 0; i < 100; i++) {
+      store.patchRunState({ [`suite-node:1.${i}`]: 'running' });
+    }
+
+    // Was ~40s with the all-pairs comparison; ~0.3s now. Generous bound avoids flakiness.
+    expect(Date.now() - startedAt).toBeLessThan(5000);
+    expect(store.getOverview().skipped).toBe(5000);
+  });
+
   it('resets overview and tree data together', () => {
     const store = createSuiteRunDataStore();
     store.appendReports({ 'suite-node:0': [sampleReport()] });

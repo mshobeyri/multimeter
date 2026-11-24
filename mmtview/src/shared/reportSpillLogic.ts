@@ -19,15 +19,29 @@ export function computeReportStats(reports: StepReportItem[]): ReportStepStats {
   return { passed, failed, stepCount: reports.length };
 }
 
+/**
+ * Size estimates per report array. The store replaces an array whenever its node changes,
+ * so identity is a safe cache key and unchanged nodes are never serialized again.
+ */
+const reportBytesCache = new WeakMap<StepReportItem[], number>();
+
+/** Approximate serialized size (JSON length; exact for ASCII). Cached per array. */
 export function estimateReportBytes(reports: StepReportItem[]): number {
   if (!reports.length) {
     return 0;
   }
-  try {
-    return new Blob([JSON.stringify(reports)]).size;
-  } catch {
-    return JSON.stringify(reports).length;
+  const cached = reportBytesCache.get(reports);
+  if (cached !== undefined) {
+    return cached;
   }
+  let size: number;
+  try {
+    size = JSON.stringify(reports).length;
+  } catch {
+    size = 0;
+  }
+  reportBytesCache.set(reports, size);
+  return size;
 }
 
 export function estimateReportsMapBytes(map: Record<string, StepReportItem[]>): number {

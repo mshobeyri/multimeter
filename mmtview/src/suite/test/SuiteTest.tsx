@@ -344,6 +344,9 @@ const LoadOverviewBoxes: React.FC<{
     );
 };
 
+/** Hierarchy responses arrive one by one; commit them to React at most this often. */
+const HIERARCHY_UI_BATCH_MS = 60;
+
 type SuiteYamlDoc = Record<string, unknown> | null;
 
 const parseSuiteYamlDoc = (content: string): SuiteYamlDoc => {
@@ -831,8 +834,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }
         return ids;
     }, [groups, hierarchyByEntryId, duplicateServerPathKeys]);
+    /**
+     * Live hierarchy: updated in place the moment a response arrives (run paths read it).
+     * React state is refreshed in batches (see `scheduleHierarchyUiFlush`) so a suite with
+     * hundreds of entries does not re-render and rebuild the tree once per response.
+     */
     const hierarchyByEntryIdRef = useRef<Record<string, SuiteTreeNode>>({});
-    hierarchyByEntryIdRef.current = hierarchyByEntryId;
 
     const hierarchyMissingPaths = useMemo(() => {
         const missing = new Set<string>();
@@ -917,8 +924,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         // Full depth for run/flowchart readiness (run path also builds its own tree).
         const next = await fetchHierarchyByEntryId();
         if (fingerprintHierarchyByEntryId(next) !== fingerprintHierarchyByEntryId(previous)) {
-            hierarchyByEntryIdRef.current = next;
-            setHierarchyByEntryId(next);
+            hierarchyByEntryIdRef.current = { ...next };
+            setHierarchyByEntryId({ ...next });
         }
         return next;
     }, [allEntriesHaveHierarchy, fetchHierarchyByEntryId]);
@@ -932,63 +939,97 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const firstSectionReadyRef = useRef<Set<string>>(new Set());
     const prefetchGenerationRef = useRef(0);
 
+    /** Coalesces hierarchy / spinner updates into one React commit per interval. */
+    const hierarchyUiFlushTimerRef = useRef<number | null>(null);
+    const hierarchyUiDirtyRef = useRef(false);
+    const loadingUiDirtyRef = useRef(false);
+    const deepeningUiDirtyRef = useRef(false);
+
+    const flushHierarchyUi = useCallback(() => {
+        hierarchyUiFlushTimerRef.current = null;
+        if (hierarchyUiDirtyRef.current) {
+            hierarchyUiDirtyRef.current = false;
+            setHierarchyByEntryId({ ...hierarchyByEntryIdRef.current });
+        }
+        if (loadingUiDirtyRef.current) {
+            loadingUiDirtyRef.current = false;
+            setLoadingHierarchyIds(new Set(loadingHierarchyRef.current));
+        }
+        if (deepeningUiDirtyRef.current) {
+            deepeningUiDirtyRef.current = false;
+            setDeepeningHierarchyIds(new Set(deepeningHierarchyRef.current));
+        }
+    }, []);
+
+    const scheduleHierarchyUiFlush = useCallback(() => {
+        if (hierarchyUiFlushTimerRef.current !== null) {
+            return;
+        }
+        hierarchyUiFlushTimerRef.current = window.setTimeout(flushHierarchyUi, HIERARCHY_UI_BATCH_MS);
+    }, [flushHierarchyUi]);
+
+    useEffect(() => () => {
+        if (hierarchyUiFlushTimerRef.current !== null) {
+            window.clearTimeout(hierarchyUiFlushTimerRef.current);
+            hierarchyUiFlushTimerRef.current = null;
+        }
+    }, []);
+
     const syncLoadingHierarchyIds = useCallback((next: Set<string>) => {
-        loadingHierarchyRef.current = next;
+        loadingHierarchyRef.current = new Set(next);
+        loadingUiDirtyRef.current = false;
         setLoadingHierarchyIds(next);
     }, []);
 
     const syncDeepeningHierarchyIds = useCallback((next: Set<string>) => {
-        deepeningHierarchyRef.current = next;
+        deepeningHierarchyRef.current = new Set(next);
+        deepeningUiDirtyRef.current = false;
         setDeepeningHierarchyIds(next);
     }, []);
 
     const setEntryHierarchyLoading = useCallback((entryId: string, loading: boolean) => {
-        const prev = loadingHierarchyRef.current;
-        if (loading === prev.has(entryId)) {
+        const live = loadingHierarchyRef.current;
+        if (loading === live.has(entryId)) {
             return;
         }
-        const next = new Set(prev);
         if (loading) {
-            next.add(entryId);
+            live.add(entryId);
         } else {
-            next.delete(entryId);
+            live.delete(entryId);
         }
-        syncLoadingHierarchyIds(next);
-    }, [syncLoadingHierarchyIds]);
+        loadingUiDirtyRef.current = true;
+        scheduleHierarchyUiFlush();
+    }, [scheduleHierarchyUiFlush]);
 
     const setEntryHierarchyDeepening = useCallback((entryId: string, deepening: boolean) => {
-        const prev = deepeningHierarchyRef.current;
-        if (deepening === prev.has(entryId)) {
+        const live = deepeningHierarchyRef.current;
+        if (deepening === live.has(entryId)) {
             return;
         }
-        const next = new Set(prev);
         if (deepening) {
-            next.add(entryId);
+            live.add(entryId);
         } else {
-            next.delete(entryId);
+            live.delete(entryId);
         }
-        syncDeepeningHierarchyIds(next);
-    }, [syncDeepeningHierarchyIds]);
+        deepeningUiDirtyRef.current = true;
+        scheduleHierarchyUiFlush();
+    }, [scheduleHierarchyUiFlush]);
 
     /** Replace entries with deeper trees after first-section / full deepen. */
     const replaceHierarchyByEntryId = useCallback((incoming: Record<string, SuiteTreeNode>) => {
-        setHierarchyByEntryId((prev) => {
-            let changed = false;
-            const next = { ...prev };
-            for (const [entryId, tree] of Object.entries(incoming)) {
-                if (!tree || typeof tree !== 'object') {
-                    continue;
-                }
-                next[entryId] = tree;
-                changed = true;
+        let changed = false;
+        for (const [entryId, tree] of Object.entries(incoming)) {
+            if (!tree || typeof tree !== 'object') {
+                continue;
             }
-            if (!changed) {
-                return prev;
-            }
-            hierarchyByEntryIdRef.current = next;
-            return next;
-        });
-    }, []);
+            hierarchyByEntryIdRef.current[entryId] = tree;
+            changed = true;
+        }
+        if (changed) {
+            hierarchyUiDirtyRef.current = true;
+            scheduleHierarchyUiFlush();
+        }
+    }, [scheduleHierarchyUiFlush]);
 
     /**
      * Full recursive deepen after the first section is visible.
@@ -1046,14 +1087,11 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             }
             const titleTree = titleRes?.tree;
             if (titleTree && typeof titleTree === 'object') {
-                setHierarchyByEntryId((prev) => {
-                    if (prev[entryId]) {
-                        return prev;
-                    }
-                    const next = { ...prev, [entryId]: titleTree };
-                    hierarchyByEntryIdRef.current = next;
-                    return next;
-                });
+                if (!hierarchyByEntryIdRef.current[entryId]) {
+                    hierarchyByEntryIdRef.current[entryId] = titleTree;
+                    hierarchyUiDirtyRef.current = true;
+                    scheduleHierarchyUiFlush();
+                }
                 // Non-suite leaves: first section is just the title/kind.
                 if (titleTree.kind !== 'suite') {
                     firstSectionReadyRef.current.add(entryId);
@@ -1084,11 +1122,12 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (shouldDeepen && generation === prefetchGenerationRef.current) {
             void deepenHierarchyForEntry(entryId, generation);
         }
-    }, [deepenHierarchyForEntry, groups, replaceHierarchyByEntryId, setEntryHierarchyLoading]);
+    }, [deepenHierarchyForEntry, groups, replaceHierarchyByEntryId, scheduleHierarchyUiFlush, setEntryHierarchyLoading]);
 
     useEffect(() => {
         setHierarchyByEntryId({});
         hierarchyByEntryIdRef.current = {};
+        hierarchyUiDirtyRef.current = false;
         hierarchyFetchInFlightRef.current.clear();
         firstSectionReadyRef.current.clear();
         const pending = new Set<string>();

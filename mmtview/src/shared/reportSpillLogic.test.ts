@@ -44,6 +44,24 @@ describe('reportSpillLogic', () => {
     expect(total).toBeGreaterThan(estimateReportBytes([sample('a', 'hello')]));
   });
 
+  it('serializes a report array once and reuses the size for the same array', () => {
+    const reports = [sample('a', 'hello')];
+    const stringify = jest.spyOn(JSON, 'stringify');
+    const first = estimateReportBytes(reports);
+    const second = estimateReportBytes(reports);
+    const calls = stringify.mock.calls.length;
+    stringify.mockRestore();
+
+    expect(second).toBe(first);
+    expect(calls).toBe(1);
+  });
+
+  it('re-measures when the node gets a new array (new reports appended)', () => {
+    const before = [sample('a', 'hello')];
+    const after = [...before, sample('b', 'x'.repeat(500))];
+    expect(estimateReportBytes(after)).toBeGreaterThan(estimateReportBytes(before));
+  });
+
   it('maps deeply nested expanded tree ids to bundle node ids', () => {
     expect(bundleIdFromExpandedTreeItem('suite-node:0::suite-node:0.1::suite-node:0.1.2'))
       .toBe('suite-node:0.1.2');

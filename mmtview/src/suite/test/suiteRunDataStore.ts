@@ -22,26 +22,32 @@ const EMPTY_OVERVIEW: SuiteRunOverview = {
   hasRunState: false,
 };
 
-function isSkippedDescendant(nodeId: string, ancestorId: string): boolean {
-  if (nodeId === ancestorId) {
-    return false;
-  }
-  return nodeId.startsWith(`${ancestorId}.`);
-}
-
+/**
+ * Skipped nodes that have no skipped ancestor (ancestor = id prefix ending before a '.').
+ * Walks each id's prefixes against a set: O(n * depth), not O(n^2).
+ */
 function countSkipped(runStateById: Record<string, StepStatus>): number {
-  const skippedIds = Object.entries(runStateById)
-    .filter(([, status]) => status === 'skipped')
-    .map(([id]) => id);
+  const skippedIds = new Set<string>();
+  for (const id in runStateById) {
+    if (runStateById[id] === 'skipped') {
+      skippedIds.add(id);
+    }
+  }
   let skipped = 0;
-  for (const id of skippedIds) {
-    const hasSkippedAncestor = skippedIds.some(
-      (other) => other !== id && isSkippedDescendant(id, other),
-    );
+  skippedIds.forEach((id) => {
+    let hasSkippedAncestor = false;
+    let dot = id.lastIndexOf('.');
+    while (dot > 0) {
+      if (skippedIds.has(id.slice(0, dot))) {
+        hasSkippedAncestor = true;
+        break;
+      }
+      dot = id.lastIndexOf('.', dot - 1);
+    }
     if (!hasSkippedAncestor) {
       skipped += 1;
     }
-  }
+  });
   return skipped;
 }
 
