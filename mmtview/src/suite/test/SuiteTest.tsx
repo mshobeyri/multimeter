@@ -44,6 +44,7 @@ import {
     materializeSpilledReports,
 } from '../../shared/reportSpillStore';
 import { spillExcessReports } from '../../shared/reportSpillRunner';
+import { createRequestPool } from './requestPool';
 import { setEnvironmentVariables } from '../../environment/environmentUtils';
 
 /** Get basename from a file path. */
@@ -346,6 +347,8 @@ const LoadOverviewBoxes: React.FC<{
 
 /** Hierarchy responses arrive one by one; commit them to React at most this often. */
 const HIERARCHY_UI_BATCH_MS = 60;
+/** Hierarchy requests allowed in flight at once. */
+const HIERARCHY_MAX_CONCURRENT_REQUESTS = 8;
 
 type SuiteYamlDoc = Record<string, unknown> | null;
 
@@ -840,6 +843,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
      * hundreds of entries does not re-render and rebuild the tree once per response.
      */
     const hierarchyByEntryIdRef = useRef<Record<string, SuiteTreeNode>>({});
+    /** Caps in-flight hierarchy requests to the extension host. */
+    const [hierarchyPool] = useState(() => createRequestPool(HIERARCHY_MAX_CONCURRENT_REQUESTS));
 
     const hierarchyMissingPaths = useMemo(() => {
         const missing = new Set<string>();
@@ -885,7 +890,10 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             for (const entry of group.entries) {
                 tasks.push((async () => {
                     try {
-                        const res = await getSuiteHierarchy(entry.path, entry.id, maxDepth);
+                        const res = await hierarchyPool.run(
+                            () => getSuiteHierarchy(entry.path, entry.id, maxDepth),
+                            'high',
+                        );
                         const tree = res?.tree;
                         if (tree && typeof tree === 'object') {
                             // Key by entry id (position), not path — duplicate
@@ -900,7 +908,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }
         await Promise.all(tasks);
         return result;
-    }, [groups]);
+    }, [groups, hierarchyPool]);
 
     const allEntriesHaveHierarchy = useCallback((
         hierarchyByEntryId: Record<string, SuiteTreeNode>,
@@ -1045,7 +1053,13 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }
         setEntryHierarchyDeepening(entryId, true);
         try {
-            const res = await getSuiteHierarchy(entry.path, entry.id);
+            // Low priority: first sections of other entries are served before deep loads.
+            const res = await hierarchyPool.run(async () => {
+                if (generation !== prefetchGenerationRef.current) {
+                    return undefined;
+                }
+                return getSuiteHierarchy(entry.path, entry.id);
+            }, 'low');
             if (generation !== prefetchGenerationRef.current) {
                 return;
             }
@@ -1061,7 +1075,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 setEntryHierarchyDeepening(entryId, false);
             }
         }
-    }, [groups, replaceHierarchyByEntryId, setEntryHierarchyDeepening]);
+    }, [groups, hierarchyPool, replaceHierarchyByEntryId, setEntryHierarchyDeepening]);
 
     /**
      * Load one top-level entry: title → first section (maxDepth 1) → full deepen.
@@ -1080,36 +1094,44 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         setEntryHierarchyLoading(entryId, true);
         let shouldDeepen = false;
         try {
-            // Titles only first so the row label can resolve quickly.
-            const titleRes = await getSuiteHierarchy(entry.path, entry.id, 0);
-            if (generation !== prefetchGenerationRef.current) {
-                return;
-            }
-            const titleTree = titleRes?.tree;
-            if (titleTree && typeof titleTree === 'object') {
-                if (!hierarchyByEntryIdRef.current[entryId]) {
-                    hierarchyByEntryIdRef.current[entryId] = titleTree;
-                    hierarchyUiDirtyRef.current = true;
-                    scheduleHierarchyUiFlush();
-                }
-                // Non-suite leaves: first section is just the title/kind.
-                if (titleTree.kind !== 'suite') {
-                    firstSectionReadyRef.current.add(entryId);
+            // Title + first section share one pool slot so each entry finishes its first
+            // section before the next entry starts (no "all titles, then all sections" wave).
+            await hierarchyPool.run(async () => {
+                // Left the queue after the suite was reloaded: skip the request entirely.
+                if (generation !== prefetchGenerationRef.current) {
                     return;
                 }
-            }
+                // Titles only first so the row label can resolve quickly.
+                const titleRes = await getSuiteHierarchy(entry.path, entry.id, 0);
+                if (generation !== prefetchGenerationRef.current) {
+                    return;
+                }
+                const titleTree = titleRes?.tree;
+                if (titleTree && typeof titleTree === 'object') {
+                    if (!hierarchyByEntryIdRef.current[entryId]) {
+                        hierarchyByEntryIdRef.current[entryId] = titleTree;
+                        hierarchyUiDirtyRef.current = true;
+                        scheduleHierarchyUiFlush();
+                    }
+                    // Non-suite leaves: first section is just the title/kind.
+                    if (titleTree.kind !== 'suite') {
+                        firstSectionReadyRef.current.add(entryId);
+                        return;
+                    }
+                }
 
-            // First section: direct children; nested suites stay as title stubs.
-            const sectionRes = await getSuiteHierarchy(entry.path, entry.id, 1);
-            if (generation !== prefetchGenerationRef.current) {
-                return;
-            }
-            const sectionTree = sectionRes?.tree;
-            if (sectionTree && typeof sectionTree === 'object') {
-                replaceHierarchyByEntryId({ [entryId]: sectionTree });
-            }
-            firstSectionReadyRef.current.add(entryId);
-            shouldDeepen = true;
+                // First section: direct children; nested suites stay as title stubs.
+                const sectionRes = await getSuiteHierarchy(entry.path, entry.id, 1);
+                if (generation !== prefetchGenerationRef.current) {
+                    return;
+                }
+                const sectionTree = sectionRes?.tree;
+                if (sectionTree && typeof sectionTree === 'object') {
+                    replaceHierarchyByEntryId({ [entryId]: sectionTree });
+                }
+                firstSectionReadyRef.current.add(entryId);
+                shouldDeepen = true;
+            }, 'high');
         } catch {
             // Ignore; tree keeps the placeholder folder.
         } finally {
@@ -1122,7 +1144,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (shouldDeepen && generation === prefetchGenerationRef.current) {
             void deepenHierarchyForEntry(entryId, generation);
         }
-    }, [deepenHierarchyForEntry, groups, replaceHierarchyByEntryId, scheduleHierarchyUiFlush, setEntryHierarchyLoading]);
+    }, [deepenHierarchyForEntry, groups, hierarchyPool, replaceHierarchyByEntryId, scheduleHierarchyUiFlush, setEntryHierarchyLoading]);
 
     useEffect(() => {
         setHierarchyByEntryId({});

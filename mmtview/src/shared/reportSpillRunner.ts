@@ -5,7 +5,7 @@ import {
   pickReportNodeToSpill,
   type ReportStepStats,
 } from './reportSpillLogic';
-import { putSpilledReports } from './reportSpillStore';
+import { putSpilledReportsBatch } from './reportSpillStore';
 import type { StepReportItem } from './TestStepReportPanel';
 
 export async function spillExcessReports(options: {
@@ -33,6 +33,8 @@ export async function spillExcessReports(options: {
   let bytes = estimateReportsMapBytes(nextReports);
   let didSpill = false;
 
+  // Decide everything first (pure, in memory), then write it in one batch.
+  const toWrite: Array<{ nodeId: string; reports: StepReportItem[] }> = [];
   while (bytes > thresholdBytes) {
     const nodeId = pickReportNodeToSpill(nextReports, nextSpilled, options.protectNodeIds);
     if (!nodeId) {
@@ -43,11 +45,16 @@ export async function spillExcessReports(options: {
       break;
     }
     nextStats[nodeId] = computeReportStats(nodeReports);
-    await putSpilledReports(options.fileKey, options.suiteRunId, nodeId, nodeReports);
+    toWrite.push({ nodeId, reports: nodeReports });
     nextReports[nodeId] = [];
     nextSpilled.add(nodeId);
     bytes = estimateReportsMapBytes(nextReports);
     didSpill = true;
+  }
+
+  if (toWrite.length > 0) {
+    // Rejects on failure: the caller then keeps all reports in memory (nothing is marked spilled).
+    await putSpilledReportsBatch(options.fileKey, options.suiteRunId, toWrite);
   }
 
   return {

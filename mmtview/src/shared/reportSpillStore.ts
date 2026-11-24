@@ -72,6 +72,49 @@ export async function putSpilledReports(
   await runTransaction('readwrite', (store) => store.put(record));
 }
 
+/** Records per transaction. Keeps a single transaction from growing without bound. */
+const BATCH_CHUNK_SIZE = 100;
+
+/**
+ * Write many nodes in few transactions (one commit per chunk instead of one per node).
+ * Resolves only after the data is committed. If any chunk fails this rejects, and the
+ * caller must treat the whole batch as not spilled (earlier chunks may have been written;
+ * that is harmless because they are only read for nodes the caller marks as spilled).
+ */
+export async function putSpilledReportsBatch(
+  fileKey: string,
+  suiteRunId: string,
+  entries: ReadonlyArray<{ nodeId: string; reports: StepReportItem[] }>,
+): Promise<void> {
+  if (!fileKey || !suiteRunId || entries.length === 0) {
+    return;
+  }
+  const db = await openDb();
+  for (let start = 0; start < entries.length; start += BATCH_CHUNK_SIZE) {
+    const chunk = entries.slice(start, start + BATCH_CHUNK_SIZE);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      for (const entry of chunk) {
+        if (!entry.nodeId) {
+          continue;
+        }
+        const record: SpillRecord = {
+          id: makeReportSpillKey(fileKey, suiteRunId, entry.nodeId),
+          fileKey,
+          suiteRunId,
+          nodeId: entry.nodeId,
+          reports: entry.reports,
+        };
+        store.put(record);
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error ?? new Error('Report spill database transaction failed'));
+      tx.onabort = () => reject(tx.error ?? new Error('Report spill database transaction aborted'));
+    });
+  }
+}
+
 export async function getSpilledReports(
   fileKey: string,
   suiteRunId: string,
