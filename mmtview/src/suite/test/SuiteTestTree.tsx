@@ -9,6 +9,7 @@ import { StepStatus } from '../../shared/types';
 import { StepReportItem } from '../../shared/TestStepReportPanel';
 import { SuiteTreeNode, suiteTreeChildren } from './suiteHierarchy';
 import { ownRunStatus } from './suiteRunStatus';
+import { revealSuiteFailurePath } from './revealSuiteFailure';
 import { ReportStatusFilter, filterTreeItemsByStatus } from '../../shared/reportStatusFilter';
 import ReportEmptyFilterPlaceholder from '../../shared/ReportEmptyFilterPlaceholder';
 import { TREE_DEPTH_OFFSET, TreeFolderArrow, treeDragBetweenLineStyle } from '../../components/TreeChevron';
@@ -34,6 +35,33 @@ const owningEntryIdFromTreeIndex = (itemIndex: string): string => {
   const sep = raw.indexOf('::');
   return sep >= 0 ? raw.slice(0, sep) : raw;
 };
+
+/** Own run status for a tree row (never rolled up from children). */
+function treeItemRunStatus(
+  item: TreeItem<SuiteTestTreeItemData>,
+  runStateById: Record<string, StepStatus>,
+): StepStatus {
+  const data = item.data as SuiteTestTreeItemData | undefined;
+  const itemIndex = String(item.index);
+  if (!data || data.type === 'root') {
+    return 'default';
+  }
+  if (data.type === 'group') {
+    const match = /^group-(\d+)$/.exec(itemIndex);
+    if (match) {
+      return ownRunStatus(runStateById, createSuiteNodeId([Number(match[1]) - 1]));
+    }
+    const bundleId = (data as { id?: string }).id;
+    return ownRunStatus(runStateById, typeof bundleId === 'string' ? bundleId : undefined);
+  }
+  const itemBundleId = (data as { id?: string }).id;
+  const ownerEntryId = owningEntryIdFromTreeIndex(itemIndex);
+  const belongs = !itemBundleId || bundleIdBelongsToEntry(ownerEntryId, itemBundleId);
+  if (!belongs) {
+    return 'default';
+  }
+  return ownRunStatus(runStateById, itemBundleId || itemIndex);
+}
 
 export type SuiteTestTreeItemData =
   | { type: 'root'; label: string }
@@ -549,34 +577,76 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
       treeData.items,
       'suite-root',
       statusFilter,
-      (item) => {
-        const data = item.data as SuiteTestTreeItemData | undefined;
-        const itemIndex = String(item.index);
-        if (!data) {
-          return 'default';
-        }
-        if (data.type === 'root') {
-          return 'default';
-        }
-        if (data.type === 'group') {
-          const match = /^group-(\d+)$/.exec(itemIndex);
-          if (match) {
-            return ownRunStatus(runStateById, createSuiteNodeId([Number(match[1]) - 1]));
-          }
-          const bundleId = (data as { id?: string }).id;
-          return ownRunStatus(runStateById, typeof bundleId === 'string' ? bundleId : undefined);
-        }
-        const itemBundleId = (data as { id?: string }).id;
-        const ownerEntryId = owningEntryIdFromTreeIndex(itemIndex);
-        const belongs =
-          !itemBundleId || bundleIdBelongsToEntry(ownerEntryId, itemBundleId);
-        if (!belongs) {
-          return 'default';
-        }
-        return ownRunStatus(runStateById, itemBundleId || itemIndex);
-      },
+      (item) => treeItemRunStatus(item, runStateById),
     );
   }, [treeData.items, statusFilter, runStateById]);
+
+  // Click the failed icon on a row: open boxes down to its first failed case.
+  const [revealRequest, setRevealRequest] = useState<{ startId: string; nonce: number } | null>(null);
+  const [revealedItem, setRevealedItem] = useState<{ id: string; token: number } | null>(null);
+  const revealNonceRef = useRef(0);
+
+  const requestRevealFailure = useCallback((startId: string) => {
+    revealNonceRef.current += 1;
+    setRevealRequest({ startId, nonce: revealNonceRef.current });
+  }, []);
+
+  useEffect(() => {
+    if (!revealRequest) {
+      return;
+    }
+    const items = treeData.items;
+    const failedBundleIds = Object.keys(runStateById).filter((id) => runStateById[id] === 'failed');
+    const hit = revealSuiteFailurePath(
+      items,
+      (itemId) => {
+        const item = items[itemId];
+        return item ? treeItemRunStatus(item, runStateById) === 'failed' : false;
+      },
+      failedBundleIds,
+      revealRequest.startId,
+    );
+    if (!hit) {
+      setRevealRequest(null);
+      return;
+    }
+
+    setExpandedItems((prev) => {
+      const seen = new Set(prev);
+      const next = [...prev];
+      for (const id of hit.expandIds) {
+        if (items[id]?.isFolder && !seen.has(id)) {
+          next.push(id);
+          seen.add(id);
+        }
+      }
+      if (next.length === prev.length) {
+        return prev;
+      }
+      syncExpandedItems(next, items);
+      return next;
+    });
+
+    if (hit.needsChildren) {
+      // Failed cases are still loading; this effect runs again when the tree grows.
+      const ownerEntryId = owningEntryIdFromTreeIndex(hit.terminalId);
+      if (onRequestHierarchy && topLevelEntryIds.has(ownerEntryId) && !hierarchyByEntryId[ownerEntryId]) {
+        onRequestHierarchy(ownerEntryId);
+      }
+      return;
+    }
+
+    setRevealedItem({ id: hit.terminalId, token: revealRequest.nonce });
+    setRevealRequest(null);
+  }, [
+    revealRequest,
+    treeData.items,
+    runStateById,
+    syncExpandedItems,
+    onRequestHierarchy,
+    topLevelEntryIds,
+    hierarchyByEntryId,
+  ]);
 
   const hasVisibleLeaves = useMemo(() => {
     if (statusFilter === 'all') {
@@ -671,6 +741,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           runButtonTitle="Run group"
           runDisabled={!hasTargets}
           paused={paused}
+          onRevealFailure={data.type === 'group' ? () => requestRevealFailure(itemId) : undefined}
           onRun={() => hasTargets && onRunTargets(groupTargets[0])}
           onRunInCore={
             hasTargets && onRunTargetsInCore
@@ -714,6 +785,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           status={status}
           hierarchyLoading={hierarchyLoading}
           paused={paused}
+          onRevealFailure={() => requestRevealFailure(entryId)}
+          revealToken={revealedItem?.id === entryId ? revealedItem.token : 0}
           onRun={effectiveTarget ? () => onRunTargets(effectiveTarget) : undefined}
           onRunInCore={
             effectiveTarget && onRunTargetsInCore
@@ -751,6 +824,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
         reportSpilled={reportSpilled}
         reportLoading={reportLoading}
         paused={paused}
+        onRevealFailure={data.type !== 'server' ? () => requestRevealFailure(entryId) : undefined}
+        revealToken={revealedItem?.id === entryId ? revealedItem.token : 0}
         onRequestReports={
           reportSpilled && testLeafId && onRequestReports
             ? () => onRequestReports(testLeafId)
@@ -778,6 +853,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     statusIconFor,
     paused,
     topLevelEntryIds,
+    requestRevealFailure,
+    revealedItem,
     // Force row re-render when hierarchy load spinners change (values read via refs).
     loadingHierarchyIds,
     deepeningHierarchyIds,

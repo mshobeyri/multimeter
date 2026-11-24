@@ -445,6 +445,11 @@ interface TestStepReportPanelProps {
   scrollBody?: boolean;
   /** When true, running step icons show pause instead of play. */
   paused?: boolean;
+  /**
+   * Increment to open the first failed step. `0` does nothing.
+   * Later report rows (spilled loads) still open once a failed step arrives.
+   */
+  expandFailedStepToken?: number;
 }
 
 const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
@@ -457,9 +462,12 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
     showStatusFilter = showHeader,
     scrollBody = false,
     paused = false,
+    expandFailedStepToken = 0,
   } = props;
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
   const [statusFilter, setStatusFilter] = useState<ReportStatusFilter>('all');
+  const [pendingFailedStepReveal, setPendingFailedStepReveal] = useState(false);
+  const appliedRevealTokenRef = useRef(0);
   const stepCountRef = useRef(0);
 
   useEffect(() => {
@@ -471,6 +479,33 @@ const TestStepReportPanel: React.FC<TestStepReportPanelProps> = (props) => {
       setExpandedDetails({});
     }
   }, [isExpanded]);
+
+  useEffect(() => {
+    if (!expandFailedStepToken || expandFailedStepToken === appliedRevealTokenRef.current) {
+      return;
+    }
+    appliedRevealTokenRef.current = expandFailedStepToken;
+    setStatusFilter('all');
+    setPendingFailedStepReveal(true);
+  }, [expandFailedStepToken]);
+
+  useEffect(() => {
+    if (!pendingFailedStepReveal || statusFilter !== 'all') {
+      return;
+    }
+    const idx = stepReports.findIndex(
+      (report) => report.status === 'failed' && reportStepHasDetails(report),
+    );
+    const fallback = stepReports.findIndex((report) => report.status === 'failed');
+    const useIdx = idx >= 0 ? idx : fallback;
+    if (useIdx < 0) {
+      return;
+    }
+    const report = stepReports[useIdx];
+    const reportKey = `${report.stepType}-${report.stepIndex}-${useIdx}`;
+    setExpandedDetails((prev) => ({ ...prev, [reportKey]: true }));
+    setPendingFailedStepReveal(false);
+  }, [pendingFailedStepReveal, statusFilter, stepReports]);
 
   const visibleReports = useMemo(
     () => filterStepReports(stepReports, statusFilter),

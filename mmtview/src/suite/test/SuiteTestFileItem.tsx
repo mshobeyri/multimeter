@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import TestStepReportPanel, { StepReportItem } from '../../shared/TestStepReportPanel';
@@ -37,6 +37,10 @@ interface SuiteTestFileItemProps {
     displayPath?: string;
     duplicateServer?: boolean;
     paused?: boolean;
+    /** Click the failed icon to open down to the first failed case. */
+    onRevealFailure?: () => void;
+    /** Non-zero when this row is the revealed case. Scrolls it into view and opens the failed step. */
+    revealToken?: number;
 }
 
 const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
@@ -59,6 +63,8 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     displayPath,
     duplicateServer = false,
     paused = false,
+    onRevealFailure,
+    revealToken = 0,
 }) => {
     const data = item.data as SuiteTestFileItemData;
     const isServer = data.type === 'server';
@@ -76,6 +82,14 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
     const runState = status;
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
+    const rowRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!revealToken) {
+            return;
+        }
+        rowRef.current?.scrollIntoView({ block: 'nearest' });
+    }, [revealToken]);
 
     // Show reports when the node is expanded (chevron or label click).
     const shouldShowReports = !isServer && context?.isExpanded;
@@ -108,6 +122,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
             <div
                 className="tree-view-box tree-view-box-row"
                 {...context.itemContainerWithoutChildrenProps}
+                ref={rowRef}
             >
                 <div className="tree-view-box-row-arrow">{arrow}</div>
                 <div className="tree-view-box-row-main">
@@ -127,7 +142,8 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                           <StatusGlyph
                             icon={statusIcon.icon}
                             color={statusIcon.color}
-                            title={statusIcon.title}
+                            title={status === 'failed' && onRevealFailure ? 'Failed - click to open the first failed case' : statusIcon.title}
+                            onActivate={status === 'failed' && !isMissing ? onRevealFailure : undefined}
                           />
                         )}
                         <SuiteKindIcon kind={isServer ? 'server' : 'test'} />
@@ -176,6 +192,7 @@ const SuiteTestFileItem: React.FC<SuiteTestFileItemProps> = ({
                             }
                             paused={paused}
                             showHeader={false}
+                            expandFailedStepToken={revealToken}
                         />
                     )}
                 </div>

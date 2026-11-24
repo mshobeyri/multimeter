@@ -1525,6 +1525,35 @@
   opacity: 0.8;
 }
 
+/* The label clips overflow for text ellipsis; give the growing icon room (layout unchanged). */
+.tree-view-box-row-label:has(.status-glyph-action) {
+  padding: 6px 0 6px 6px;
+  margin: -6px 0 -6px -6px;
+}
+
+/* Clickable status icon (failed icon in the suite tree): grows a little on hover. */
+.status-glyph-action {
+  display: inline-block;
+  cursor: pointer;
+  transition: transform 0.15s ease-out, filter 0.15s ease-out;
+}
+
+.status-glyph-action:hover,
+.status-glyph-action:focus-visible {
+  transform: scale(1.35);
+  filter: drop-shadow(0 0 3px currentColor);
+}
+
+.status-glyph-action:active {
+  transform: scale(1.1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status-glyph-action {
+    transition: none;
+  }
+}
+
 .tree-group-label {
   flex-shrink: 0;
 }

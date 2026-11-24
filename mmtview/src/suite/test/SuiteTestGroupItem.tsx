@@ -29,6 +29,8 @@ interface SuiteTestGroupItemProps {
   runDisabled?: boolean;
   /** Included for tree-row memo when pause toggles running → pause icons. */
   paused?: boolean;
+  /** Click the failed icon to open down to the first failed case. */
+  onRevealFailure?: () => void;
 }
 
 const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
@@ -46,6 +48,7 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
   runButtonTitle = 'Run',
   runDisabled = false,
   paused: _paused = false,
+  onRevealFailure,
 }) => {
   const data = item.data as SuiteTestGroupItemData;
   if (data.type !== 'group' && data.type !== 'root' && data.type !== 'import-group') {
@@ -89,7 +92,8 @@ const SuiteTestGroupItem: React.FC<SuiteTestGroupItemProps> = ({
               <StatusGlyph
                 icon={statusIcon.icon}
                 color={statusIcon.color}
-                title={statusIcon.title}
+                title={status === 'failed' && !isRoot && onRevealFailure ? 'Failed - click to open the first failed case' : statusIcon.title}
+                onActivate={status === 'failed' && !isRoot ? onRevealFailure : undefined}
               />
             )}
             <SuiteKindIcon kind={data.type === 'group' || data.type === 'import-group' ? 'group' : 'root'} />

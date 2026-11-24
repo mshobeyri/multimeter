@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { TreeItem } from 'react-complex-tree';
 import { StepStatus } from '../../shared/types';
 import { openRelativeFile } from '../../vsAPI';
@@ -34,6 +34,10 @@ interface SuiteSuiteFileItemProps {
     displayPath?: string;
     /** Included for tree-row memo when pause toggles running → pause icons. */
     paused?: boolean;
+    /** Click the failed icon to open down to the first failed case. */
+    onRevealFailure?: () => void;
+    /** Non-zero when this row is the revealed case. */
+    revealToken?: number;
 }
 
 const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
@@ -52,6 +56,8 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
     runDisabled = false,
     displayPath,
     paused: _paused = false,
+    onRevealFailure,
+    revealToken = 0,
 }) => {
     const data = item.data as SuiteSuiteFileItemData;
     const isMissing = missingFiles.has(data.path);
@@ -79,6 +85,14 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                     : statusIconFor(status as any);
 
     const labelPath = (displayPath && displayPath.trim()) ? displayPath : data.path;
+    const rowRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!revealToken) {
+            return;
+        }
+        rowRef.current?.scrollIntoView({ block: 'nearest' });
+    }, [revealToken]);
 
     const activateLabel = (event: React.MouseEvent | React.KeyboardEvent, openFile: boolean) => {
         handleSuiteFileLabelActivate({
@@ -93,7 +107,7 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
 
     return (
         <TreeDepthContainer context={context} depth={depth} baseDepth={0}>
-            <div className="tree-view-box tree-view-box-row" {...context.itemContainerWithoutChildrenProps}>
+            <div className="tree-view-box tree-view-box-row" {...context.itemContainerWithoutChildrenProps} ref={rowRef}>
                 <div className="tree-view-box-row-arrow">{arrow}</div>
                 <div className="tree-view-box-row-main">
                     <div
@@ -111,8 +125,9 @@ const SuiteSuiteFileItem: React.FC<SuiteSuiteFileItemProps> = ({
                         <StatusGlyph
                             icon={statusIcon.icon}
                             color={statusIcon.color}
-                            title={statusIcon.title}
+                            title={status === 'failed' && onRevealFailure ? 'Failed - click to open the first failed case' : statusIcon.title}
                             spin={hierarchyLoading && !isMissing}
+                            onActivate={status === 'failed' && !isMissing && !hierarchyLoading ? onRevealFailure : undefined}
                         />
                         <SuiteKindIcon kind="suite" />
                         {labelPath}

@@ -27,6 +27,8 @@ type StatusGlyphProps = StatusGlyphMeta & {
   className?: string;
   /** Adds `codicon-modifier-spin` (for `loading` / `sync` / `gear`). */
   spin?: boolean;
+  /** Makes the icon a button; the click never reaches the row (no expand/collapse). */
+  onActivate?: () => void;
 };
 
 export const StatusGlyph: React.FC<StatusGlyphProps> = ({
@@ -35,6 +37,7 @@ export const StatusGlyph: React.FC<StatusGlyphProps> = ({
   title,
   className,
   spin = false,
+  onActivate,
 }) => {
   const spinClass = spin ? "codicon-modifier-spin" : undefined;
   if (icon === PAUSE_CIRCLE_ICON) {
@@ -56,6 +59,29 @@ export const StatusGlyph: React.FC<StatusGlyphProps> = ({
           flexShrink: 0,
         }}
         dangerouslySetInnerHTML={{ __html: PAUSE_CIRCLE_SVG }}
+      />
+    );
+  }
+  if (onActivate) {
+    return (
+      <span
+        className={["codicon", icon, spinClass, "status-glyph-action", className].filter(Boolean).join(" ")}
+        role="button"
+        tabIndex={0}
+        title={title}
+        style={{ color }}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          onActivate();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            event.stopPropagation();
+            onActivate();
+          }
+        }}
       />
     );
   }

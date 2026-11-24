@@ -19,6 +19,7 @@ export function areSuiteTreeRowPropsEqual<T extends {
   reportLoading?: boolean;
   hierarchyLoading?: boolean;
   paused?: boolean;
+  revealToken?: number;
 }>(prev: T, next: T): boolean {
   if (prev.item?.index !== next.item?.index) {
     return false;
@@ -68,6 +69,9 @@ export function areSuiteTreeRowPropsEqual<T extends {
     return false;
   }
   if (prev.paused !== next.paused) {
+    return false;
+  }
+  if (prev.revealToken !== next.revealToken) {
     return false;
   }
   if (prev.item?.isFolder || next.item?.isFolder) {
