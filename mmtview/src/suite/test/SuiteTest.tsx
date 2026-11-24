@@ -733,6 +733,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             const suiteRunId = suiteRunIdRef.current || '';
             if (fileKey && suiteRunId) {
                 const protectNodeIds = new Set(expandedReportNodeIdsRef.current);
+                // Spilling is async (IndexedDB). A new run can reset the store before it
+                // finishes; applying that stale result would resurrect old pass counts.
+                const spillEpoch = runDataStore.getResetEpoch();
                 void (async () => {
                     const spilled = await spillExcessReports({
                         reports: next,
@@ -752,7 +755,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         }
                         clearedIds.push(id);
                     });
-                    runDataStore.applySpill(spilled.spilled, spilled.stats, clearedIds);
+                    runDataStore.applySpill(spilled.spilled, spilled.stats, clearedIds, spillEpoch);
                 })();
             }
         }

@@ -69,6 +69,11 @@ export class SuiteRunDataStore {
   private overview: SuiteRunOverview = { ...EMPTY_OVERVIEW };
   private treeVersion = 0;
   private overviewVersion = 0;
+  /**
+   * Bumped by every reset. Async work that started earlier (report spilling) must not
+   * write results back after a new run reset the store, or stale counts reappear.
+   */
+  private resetEpoch = 0;
   private treeListeners = new Set<() => void>();
   private overviewListeners = new Set<() => void>();
 
@@ -92,6 +97,10 @@ export class SuiteRunDataStore {
 
   getOverview = (): SuiteRunOverview => {
     return this.overview;
+  };
+
+  getResetEpoch = (): number => {
+    return this.resetEpoch;
   };
 
   getReportsById(): Record<string, StepReportItem[]> {
@@ -214,6 +223,7 @@ export class SuiteRunDataStore {
   }
 
   resetReportsAndSpill(): void {
+    this.resetEpoch += 1;
     this.leafReportsById = {};
     this.reportStatsById = {};
     this.spilledReportIds = new Set();
@@ -223,6 +233,7 @@ export class SuiteRunDataStore {
   }
 
   resetAll(): void {
+    this.resetEpoch += 1;
     this.leafReportsById = {};
     this.leafRunStateById = {};
     this.reportStatsById = {};
@@ -233,6 +244,7 @@ export class SuiteRunDataStore {
   }
 
   resetPartial(targets: readonly string[]): void {
+    this.resetEpoch += 1;
     this.leafReportsById = resetLeafStateMap(this.leafReportsById, targets);
     this.leafRunStateById = resetLeafStateMap(this.leafRunStateById, targets);
     this.reportStatsById = resetLeafStateMap(this.reportStatsById, targets);
@@ -327,11 +339,19 @@ export class SuiteRunDataStore {
     return next;
   }
 
+  /**
+   * Apply a finished spill. Pass the epoch read before the spill started; when a reset
+   * happened in between (new run), the result is stale and is ignored.
+   */
   applySpill(
     spilled: Set<string>,
     stats: Record<string, ReportStepStats>,
     clearedIds: readonly string[],
-  ): void {
+    expectedEpoch?: number,
+  ): boolean {
+    if (expectedEpoch !== undefined && expectedEpoch !== this.resetEpoch) {
+      return false;
+    }
     const next = { ...this.leafReportsById };
     clearedIds.forEach((id) => {
       next[id] = [];
@@ -341,9 +361,11 @@ export class SuiteRunDataStore {
     this.reportStatsById = { ...stats };
     this.syncOverviewFlags();
     this.bumpTree();
+    return true;
   }
 
   clearSpillState(): void {
+    this.resetEpoch += 1;
     this.spilledReportIds = new Set();
     this.reportStatsById = {};
     this.loadingReportIds = new Set();

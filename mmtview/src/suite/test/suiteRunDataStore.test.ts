@@ -1,4 +1,5 @@
 import { createSuiteRunDataStore } from './suiteRunDataStore';
+import { computeReportStats } from '../../shared/reportSpillLogic';
 import type { StepReportItem } from '../../shared/TestStepReportPanel';
 
 const sampleReport = (status: 'passed' | 'failed' = 'passed'): StepReportItem => ({
@@ -71,5 +72,59 @@ describe('suiteRunDataStore', () => {
     });
     expect(store.getReportsById()).toEqual({});
     expect(store.getRunStateById()).toEqual({});
+  });
+
+  describe('stale spill results', () => {
+    const spillOf = (id: string, reports: StepReportItem[]) => ({
+      spilled: new Set([id]),
+      stats: { [id]: computeReportStats(reports) },
+    });
+
+    it('does not bring old pass counts back after a new run reset the store', () => {
+      const store = createSuiteRunDataStore();
+      const previousRun = [sampleReport(), sampleReport(), sampleReport()];
+      store.appendReports({ 'suite-node:0': previousRun });
+
+      // Previous run: a spill starts (async) ...
+      const epoch = store.getResetEpoch();
+      const spill = spillOf('suite-node:0', previousRun);
+
+      // ... user clicks Run again before it finishes.
+      store.resetReportsAndSpill();
+      store.patchRunState({ 'suite-node:0': 'running' });
+      expect(store.getOverview().passed).toBe(0);
+
+      // The old spill completes late: it must be ignored.
+      expect(store.applySpill(spill.spilled, spill.stats, ['suite-node:0'], epoch)).toBe(false);
+      store.patchRunState({ 'suite-node:0': 'passed' });
+
+      expect(store.getOverview()).toMatchObject({ passed: 0, failed: 0, fileCount: 0 });
+      expect(store.getSpilledReportIds().size).toBe(0);
+    });
+
+    it('applies a spill when nothing was reset in the meantime', () => {
+      const store = createSuiteRunDataStore();
+      const reports = [sampleReport(), sampleReport('failed')];
+      store.appendReports({ 'suite-node:0': reports });
+      const epoch = store.getResetEpoch();
+      const spill = spillOf('suite-node:0', reports);
+
+      expect(store.applySpill(spill.spilled, spill.stats, ['suite-node:0'], epoch)).toBe(true);
+      store.patchRunState({ 'suite-node:0': 'failed' });
+
+      expect(store.getSpilledReportIds().has('suite-node:0')).toBe(true);
+      expect(store.getOverview()).toMatchObject({ passed: 1, failed: 1, fileCount: 1 });
+    });
+
+    it('ignores a stale spill after a partial run reset too', () => {
+      const store = createSuiteRunDataStore();
+      store.appendReports({ 'suite-node:0': [sampleReport()] });
+      const epoch = store.getResetEpoch();
+      const spill = spillOf('suite-node:0', [sampleReport()]);
+
+      store.resetPartial(['suite-node:0']);
+
+      expect(store.applySpill(spill.spilled, spill.stats, ['suite-node:0'], epoch)).toBe(false);
+    });
   });
 });
