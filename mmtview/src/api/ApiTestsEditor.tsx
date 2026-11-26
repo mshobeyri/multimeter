@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { ApiTestBlock } from "mmt-core/data/APIData";
 import type { ApiTestExpectItem } from "mmt-core/runner/apiTestEval";
+import { resolveApiOutputField } from "mmt-core/runner/apiTestEval";
 import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
@@ -15,7 +16,8 @@ import CheckClauseList, {
   type CheckClauseRow,
 } from "../components/CheckClauseList";
 import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
-import { shortValueTypeLabel } from "mmt-core/parse/yamlValueConvert";
+import { shortValueTypeLabel, yamlValueToInputBox } from "mmt-core/parse/yamlValueConvert";
+import type { JSONValue } from "mmt-core/data/CommonData";
 import { fieldTrailingLayout } from "../components/FieldWithRemove";
 
 const DEFAULT_FIELDS = [
@@ -32,6 +34,8 @@ export interface ApiTestsEditorProps {
   onChange: (test: ApiTestBlock | undefined) => void;
   /** Result rows from the last Send / run (optional). */
   results?: ApiTestExpectItem[] | null;
+  /** Last run outputs — used in view mode as key(actual). */
+  runOutputs?: Record<string, any> | null;
   /** Suggested field names (e.g. declared outputs) — shown first in the field select. */
   fieldSuggestions?: string[];
   /** Expected values: resolved/token dual-mode when they contain tokens. */
@@ -41,6 +45,17 @@ export interface ApiTestsEditorProps {
   editing?: boolean;
   /** When true, omit the built-in Expect label (parent SectionEditLabel owns it). */
   hideLabel?: boolean;
+}
+
+function formatActualValue(value: unknown): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  try {
+    return yamlValueToInputBox(value as JSONValue);
+  } catch {
+    return String(value);
+  }
 }
 
 function buildExpectBlock(expectRows: CheckClauseRow[]): ApiTestBlock | undefined {
@@ -63,6 +78,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
   test,
   onChange,
   results,
+  runOutputs,
   fieldSuggestions,
   canContainToken = false,
   valueContext,
@@ -164,11 +180,19 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
               typeLabel,
               buttonCount: 0,
             });
+            const result = resultForRow(row);
+            const actualRaw = result && Object.prototype.hasOwnProperty.call(result, "actual")
+              ? result.actual
+              : (runOutputs ? resolveApiOutputField(runOutputs, row.field) : undefined);
+            const actualText = formatActualValue(actualRaw);
+            const fieldLabel = actualText !== undefined
+              ? `${row.field}(${actualText})`
+              : row.field;
             return (
               <div key={row.rowId} className="check-clause-row is-readonly">
                 <div className="check-clause-status">{resultIcon(row)}</div>
-                <div className="check-clause-view-box" title={row.field}>
-                  <span className="check-clause-view-box-text">{row.field}</span>
+                <div className="check-clause-view-box" title={fieldLabel}>
+                  <span className="check-clause-view-box-text">{fieldLabel}</span>
                 </div>
                 <div className="check-clause-view-box is-op" title={op}>
                   <span className="check-clause-view-box-text">{op}</span>

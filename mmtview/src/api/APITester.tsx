@@ -2330,6 +2330,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                       expect: exampleExpect(examples[selectedExampleIdx]),
                     }}
                     results={apiTestResults}
+                    runOutputs={outputs}
                     fieldSuggestions={outputFieldSuggestions}
                     canContainToken
                     valueContext={bodyValueContext}
@@ -2363,6 +2364,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                     expect: exampleExpect(examples[selectedExampleIdx]),
                   }}
                   results={apiTestResults}
+                  runOutputs={outputs}
                   fieldSuggestions={outputFieldSuggestions}
                   canContainToken
                   valueContext={bodyValueContext}
