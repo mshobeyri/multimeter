@@ -105,7 +105,11 @@ interface SuiteTestTreeProps {
   ) => void;
   /** When true, running file/group status icons show pause. */
   paused?: boolean;
+  /** A suite run is already active: disable every row Run button. */
+  runBusy?: boolean;
 }
+
+const RUN_BUSY_TITLE = 'A run is in progress';
 
 const buildBaseTestTree = (groups: SuiteGroup[]) => {
   const items: Record<string, TreeItem<SuiteTestTreeItemData>> = {};
@@ -454,6 +458,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
   suiteStructureKey,
   onExpandedItemsChange,
   paused = false,
+  runBusy = false,
 }, ref) {
   const base = useMemo(() => buildBaseTestTree(groups), [groups]);
   const defaultExpandedItems = useMemo(() => buildDefaultExpandedSuiteIds(groups), [groups]);
@@ -738,8 +743,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
           statusIconFor={statusIconFor}
           canShowStatusIcon={data.type === 'group' || data.type === 'root'}
           showRunButton={data.type === 'group'}
-          runButtonTitle="Run group"
-          runDisabled={!hasTargets}
+          runButtonTitle={runBusy ? RUN_BUSY_TITLE : 'Run group'}
+          runDisabled={!hasTargets || runBusy}
           paused={paused}
           onRevealFailure={data.type === 'group' ? () => requestRevealFailure(itemId) : undefined}
           onRun={() => hasTargets && onRunTargets(groupTargets[0])}
@@ -793,8 +798,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
               ? () => onRunTargetsInCore(effectiveTarget)
               : undefined
           }
-          runButtonTitle="Run suite"
-          runDisabled={!effectiveTarget}
+          runButtonTitle={runBusy ? RUN_BUSY_TITLE : 'Run suite'}
+          runDisabled={!effectiveTarget || runBusy}
           displayPath={displayPath}
         />
       );
@@ -837,8 +842,8 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
             ? () => onRunTargetsInCore(testLeafId!)
             : undefined
         }
-        runButtonTitle={data.type === 'server' ? 'Run server' : 'Run test'}
-        runDisabled={!canRunLeaf}
+        runButtonTitle={runBusy ? RUN_BUSY_TITLE : data.type === 'server' ? 'Run server' : 'Run test'}
+        runDisabled={!canRunLeaf || runBusy}
         displayPath={displayPath}
         duplicateServer={Boolean(itemBundleId && duplicateServerIds?.has(itemBundleId))}
       />
@@ -852,6 +857,7 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     duplicateServerIds,
     statusIconFor,
     paused,
+    runBusy,
     topLevelEntryIds,
     requestRevealFailure,
     revealedItem,

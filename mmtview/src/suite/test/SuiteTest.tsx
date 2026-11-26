@@ -1503,6 +1503,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     }, [groups, allEntriesHaveHierarchy, ensureHierarchyFresh, beginSuiteRun, runDataStore, suiteRunState]);
 
     const onRunSuiteInCore = useCallback(() => {
+        if (suiteRunState === 'pending' || suiteRunState === 'running') {
+            return;
+        }
         window.vscode?.postMessage({
             command: 'runSuite',
             suiteRunId: `suite-logs:${Date.now()}`,
@@ -1511,11 +1514,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (!allEntriesHaveHierarchy(hierarchyByEntryIdRef.current)) {
             void ensureHierarchyFresh();
         }
-    }, [allEntriesHaveHierarchy, ensureHierarchyFresh]);
+    }, [allEntriesHaveHierarchy, ensureHierarchyFresh, suiteRunState]);
 
     const onRunTargetsInCore = useCallback((target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
         if (!requestedTarget) {
+            return;
+        }
+        if (suiteRunState === 'pending' || suiteRunState === 'running') {
             return;
         }
         const previousHierarchy = hierarchyByEntryIdRef.current;
@@ -1530,7 +1536,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         if (!allEntriesHaveHierarchy(previousHierarchy)) {
             void ensureHierarchyFresh();
         }
-    }, [allEntriesHaveHierarchy, ensureHierarchyFresh]);
+    }, [allEntriesHaveHierarchy, ensureHierarchyFresh, suiteRunState]);
 
     const onStopSuite = useCallback(() => {
         if (!suiteRunId) {
@@ -1628,7 +1634,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             paused: isPaused,
             canPause: suiteRunState === 'pending' || suiteRunState === 'running',
             onRunInCore: onRunSuiteInCore,
-            runInCoreDisabled: !canRun,
+            runInCoreDisabled: !canRun || suiteRunState === 'pending' || suiteRunState === 'running',
             onClear: handleClearReport,
             clearDisabled: suiteClearDisabled,
             onExport: (format) => {
@@ -1718,6 +1724,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             onExpandedItemsChange={handleExpandedItemsChange}
             onRequestReports={loadReportsForNode}
             paused={isPaused}
+            runBusy={suiteRunState === 'pending' || suiteRunState === 'running'}
         />
     );
 

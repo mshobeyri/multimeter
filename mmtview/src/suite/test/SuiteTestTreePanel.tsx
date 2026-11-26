@@ -28,6 +28,7 @@ type SuiteTestTreePanelProps = {
   ) => void;
   onRequestReports?: (nodeId: string) => void;
   paused?: boolean;
+  runBusy?: boolean;
 };
 
 const SuiteTestTreePanel = React.forwardRef<SuiteTestTreeHandle, SuiteTestTreePanelProps>(
