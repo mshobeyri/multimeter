@@ -91,6 +91,8 @@ type CheckClauseListProps = {
   renderStatus?: (row: CheckClauseRow, index: number) => React.ReactNode;
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
+  /** When true, omit the built-in Expect/Require label (parent owns the header). */
+  hideLabel?: boolean;
 };
 
 const CheckClauseList: React.FC<CheckClauseListProps> = ({
@@ -103,13 +105,14 @@ const CheckClauseList: React.FC<CheckClauseListProps> = ({
   renderStatus,
   canContainToken = false,
   valueContext,
+  hideLabel = false,
 }) => {
   const copy = CLAUSE_COPY[kind];
   const label = kind === "expect" ? "Expect" : "Require";
 
   return (
     <>
-      <div className="label">{label}</div>
+      {!hideLabel ? <div className="label">{label}</div> : null}
       <div className="field-pad">
         {rows.length > 0 && (
           <div className="check-clause-table">

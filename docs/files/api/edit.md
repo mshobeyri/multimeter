@@ -9,9 +9,9 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 | {{btn:settings-gear:Settings}} (first tab) | `timeout`, `import` |
 | **Auth** | `auth` — none, bearer, basic, API key, or OAuth2 |
 | **Doc** | `title`, `tags`, `description` — click the pencil next to a section to edit |
-| **Inputs** (request) | Declared `inputs` (pencil), runtime example values, soft **Expect** check rows when an example is selected |
+| **Inputs** (request) | Declared `inputs` (pencil), runtime example values |
+| **Outputs** (response) | Declared `outputs` / `setenv` (pencil); view mode shows extracted / env values; soft **Expect** check rows after Outputs |
 | **Expect** (response) | Read-only expected status (badge), headers, and body snapshot |
-| **Outputs** (response) | Declared `outputs` / `setenv` (pencil); view mode shows extracted / env values after Send |
 | **Params** / **Headers** / **Body** / **Cookies** | Request message fields (same as Send) |
 
 ### Settings
@@ -31,8 +31,8 @@ See [Documentation](./documentation.md) and [Input and output documentation](../
 
 ### Inputs / Outputs
 
-- **Inputs** (request pane): Example dropdown, declared/runtime inputs, and soft **Expect** checks when an example is selected. The response **Expect** tab is a separate read-only status/headers/body snapshot. When `description` lists allowed values with `<<i:name>> [...]`, those fields show a ⋯ options menu (same as the test runner)
-- **Outputs** (response pane): pencil switches between extraction paths and values after Send; **Setenv** works the same way (edit expressions / view env values written after Send)
+- **Inputs** (request pane): Example dropdown and declared/runtime inputs. When `description` lists allowed values with `<<i:name>> [...]`, those fields show a ⋯ options menu (same as the test runner)
+- **Outputs** (response pane): pencil switches between extraction paths and values after Send; soft **Expect** checks for the selected example sit under Outputs; **Setenv** works like Outputs (edit expressions / view env values). The response **Expect** tab is a separate read-only status/headers/body snapshot.
 
 Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear on their protocol tabs. See [Protocols](./protocols/index.md).
 

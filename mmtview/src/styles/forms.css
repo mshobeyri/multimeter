@@ -838,6 +838,47 @@ select.is-invalid {
   box-sizing: border-box;
 }
 
+.check-clause-table.is-readonly,
+.check-clause-row.is-readonly {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Match edit-mode control size (input / select / op trigger = 28px). */
+.check-clause-view-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  height: 28px;
+  min-height: 28px;
+  box-sizing: border-box;
+  padding: 0 8px;
+  border-radius: var(--mmt-control-radius, 2px);
+  border: 1px solid var(--vscode-input-border, transparent);
+  background: var(--vscode-input-background, transparent);
+  color: var(--vscode-input-foreground, inherit);
+  font: inherit;
+  line-height: normal;
+  pointer-events: none;
+}
+
+.check-clause-view-box.is-op {
+  justify-content: center;
+  padding-left: 2px;
+  padding-right: 2px;
+  font-size: 12px;
+}
+
+.check-clause-view-box-text {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Align add button with key column (after status gutter). */
 .apitest-tests .ghost-add,
 .field-pad > .field-block .ghost-add {

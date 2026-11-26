@@ -840,6 +840,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const [editDescription, setEditDescription] = useState(false);
   const [editInputsDecl, setEditInputsDecl] = useState(false);
   const [editOutputsDecl, setEditOutputsDecl] = useState(false);
+  const [editExpectDecl, setEditExpectDecl] = useState(false);
   const [editSetenvDecl, setEditSetenvDecl] = useState(false);
 
   const setEditorTab = (tab: EditorTab) => {
@@ -1157,6 +1158,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       setEditDescription(false);
       setEditInputsDecl(false);
       setEditOutputsDecl(false);
+      setEditExpectDecl(false);
       setEditSetenvDecl(false);
     });
     // Align sync ref so the YAML-watch effect does not immediately re-seed.
@@ -2150,36 +2152,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 onResetKey={selectedExampleIdx === -1 ? handleResetInputKey : undefined}
               />
             )}
-            {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
-              <ApiTestsEditor
-                test={{
-                  expect: exampleExpect(examples[selectedExampleIdx]),
-                }}
-                results={apiTestResults}
-                fieldSuggestions={outputFieldSuggestions}
-                canContainToken
-                valueContext={bodyValueContext}
-                onChange={(next) => {
-                  const nextExamples = examples.map((ex, i) => {
-                    if (i !== selectedExampleIdx) {
-                      return ex;
-                    }
-                    const updated = { ...ex };
-                    // Migrating off deprecated outputs when writing expect.
-                    if (updated.outputs !== undefined) {
-                      delete updated.outputs;
-                    }
-                    if (next?.expect) {
-                      updated.expect = next.expect;
-                    } else {
-                      delete updated.expect;
-                    }
-                    return updated;
-                  });
-                  updateSession({ examples: nextExamples });
-                }}
-              />
-            ) : null}
         </div>
         </KeptTabPanel>
       )}
@@ -2343,6 +2315,66 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               />
             ) : (
               <div className="apitest-empty">No outputs defined.</div>
+            )}
+            <SectionEditLabel
+              label="Expect"
+              editing={editExpectDecl}
+              onEdit={() => setEditExpectDecl(true)}
+              hideEdit={isSandbox || selectedExampleIdx < 0 || !examples[selectedExampleIdx]}
+            />
+            {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
+              editExpectDecl && !isSandbox ? (
+                <div>
+                  <ApiTestsEditor
+                    test={{
+                      expect: exampleExpect(examples[selectedExampleIdx]),
+                    }}
+                    results={apiTestResults}
+                    fieldSuggestions={outputFieldSuggestions}
+                    canContainToken
+                    valueContext={bodyValueContext}
+                    editing
+                    hideLabel
+                    onChange={(next) => {
+                      const nextExamples = examples.map((ex, i) => {
+                        if (i !== selectedExampleIdx) {
+                          return ex;
+                        }
+                        const updated = { ...ex };
+                        // Migrating off deprecated outputs when writing expect.
+                        if (updated.outputs !== undefined) {
+                          delete updated.outputs;
+                        }
+                        if (next?.expect) {
+                          updated.expect = next.expect;
+                        } else {
+                          delete updated.expect;
+                        }
+                        return updated;
+                      });
+                      updateSession({ examples: nextExamples });
+                    }}
+                  />
+                  <SectionEditDone onDone={() => setEditExpectDecl(false)} />
+                </div>
+              ) : (
+                <ApiTestsEditor
+                  test={{
+                    expect: exampleExpect(examples[selectedExampleIdx]),
+                  }}
+                  results={apiTestResults}
+                  fieldSuggestions={outputFieldSuggestions}
+                  canContainToken
+                  valueContext={bodyValueContext}
+                  editing={false}
+                  hideLabel
+                  onChange={() => { }}
+                />
+              )
+            ) : (
+              <div className="apitest-empty">
+                Select an example on Inputs to view soft expect checks.
+              </div>
             )}
             <SectionEditLabel
               label="Setenv"

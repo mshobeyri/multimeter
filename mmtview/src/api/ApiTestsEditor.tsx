@@ -5,6 +5,7 @@ import {
   applyExpectUiRowChange,
   createEmptyExpectUiRow,
   expectMapToUiRows,
+  expectStoredToDisplay,
   uiRowsToExpectMap,
 } from "mmt-core/api-edit/expectUi";
 import CheckClauseList, {
@@ -14,6 +15,8 @@ import CheckClauseList, {
   type CheckClauseRow,
 } from "../components/CheckClauseList";
 import type { RuntimeTokenValueContext } from "mmt-core/api-edit/apiBodyEdit";
+import { shortValueTypeLabel } from "mmt-core/parse/yamlValueConvert";
+import { fieldTrailingLayout } from "../components/FieldWithRemove";
 
 const DEFAULT_FIELDS = [
   "status",
@@ -34,6 +37,10 @@ export interface ApiTestsEditorProps {
   /** Expected values: resolved/token dual-mode when they contain tokens. */
   canContainToken?: boolean;
   valueContext?: RuntimeTokenValueContext;
+  /** Edit mode shows clause editors; view mode shows non-selectable values. */
+  editing?: boolean;
+  /** When true, omit the built-in Expect label (parent SectionEditLabel owns it). */
+  hideLabel?: boolean;
 }
 
 function buildExpectBlock(expectRows: CheckClauseRow[]): ApiTestBlock | undefined {
@@ -48,6 +55,10 @@ function expectSourceSig(expect: ApiTestBlock["expect"] | undefined): string {
   return JSON.stringify(expect ?? null);
 }
 
+function rowOperator(row: CheckClauseRow): string {
+  return row.explicitOperator || row.op !== "==" ? row.op : "==";
+}
+
 const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
   test,
   onChange,
@@ -55,6 +66,8 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
   fieldSuggestions,
   canContainToken = false,
   valueContext,
+  editing = true,
+  hideLabel = false,
 }) => {
   const sourceSig = useMemo(
     () => expectSourceSig(test?.expect),
@@ -109,7 +122,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
     if (!results || results.length === 0) {
       return undefined;
     }
-    const op = row.explicitOperator || row.op !== "==" ? row.op : "==";
+    const op = rowOperator(row);
     const comparison = `${row.field} ${op} ${row.expected}`;
     return resultByComparison.get(comparison) ||
         results.find(r => r.level === "expect" && r.comparison.startsWith(`${row.field} `));
@@ -132,6 +145,54 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
     );
   };
 
+  if (!editing) {
+    if (rows.length === 0) {
+      return <div className="apitest-empty">No expect checks.</div>;
+    }
+    return (
+      <div className="apitest-tests apitest-tests--view">
+        <div className="check-clause-table is-readonly">
+          {rows.map((row) => {
+            const op = rowOperator(row);
+            const expectedDisplay = canContainToken
+              ? expectStoredToDisplay(row.expected)
+              : row.expected;
+            const typeLabel = row.expected.trim() !== ""
+              ? shortValueTypeLabel(row.valueKind || "string")
+              : undefined;
+            const { paddingRight, typeRight, typeText } = fieldTrailingLayout({
+              typeLabel,
+              buttonCount: 0,
+            });
+            return (
+              <div key={row.rowId} className="check-clause-row is-readonly">
+                <div className="check-clause-status">{resultIcon(row)}</div>
+                <div className="check-clause-view-box" title={row.field}>
+                  <span className="check-clause-view-box-text">{row.field}</span>
+                </div>
+                <div className="check-clause-view-box is-op" title={op}>
+                  <span className="check-clause-view-box-text">{op}</span>
+                </div>
+                <div className="check-clause-view-box" style={{ paddingRight }}>
+                  <span className="check-clause-view-box-text">{expectedDisplay}</span>
+                  {typeText ? (
+                    <span
+                      className="field-type-affix"
+                      style={{ right: typeRight }}
+                      title="Value type"
+                    >
+                      {typeText}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="apitest-tests">
       <CheckClauseList
@@ -140,6 +201,7 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
         fieldOptions={fieldOptions}
         canContainToken={canContainToken}
         valueContext={valueContext}
+        hideLabel={hideLabel}
         renderStatus={resultIcon}
         onPartChange={(index, part, val) => {
           emit(rows.map((row, i) => (
