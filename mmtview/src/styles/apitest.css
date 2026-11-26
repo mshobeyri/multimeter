@@ -1013,12 +1013,8 @@
   word-break: break-word;
 }
 
+/* Match Doc description empty inset (MdViewer: 12px + 12px). */
 .apitest-section .apitest-empty {
-  padding-left: 0;
-  padding-right: 0;
-}
-
-.apitest-section--doc .apitest-empty {
   padding: 8px 12px 8px 24px;
 }
 
