@@ -59,6 +59,7 @@ import SectionEditLabel, { SectionEditDone } from "../components/SectionEditLabe
 import FadePane from "../components/FadePane";
 import KVEditor from "../components/KVEditor";
 import { safeList } from "mmt-core/util/safer";
+import ApiTestsEditor from "./ApiTestsEditor";
 import ExampleExpectPanel from "./ExampleExpectPanel";
 import ApiSettingsEditor from "./ApiSettingsEditor";
 import ApiAuthEditor from "./ApiAuthEditor";
@@ -582,6 +583,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     return out;
   }, [outputKeys, outputs]);
+  const outputFieldSuggestions = outputKeys;
 
   /** Declared setenv env names; view mode shows values written after Send. */
   const setenvKeys = useMemo(
@@ -1435,15 +1437,29 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       newExample.inputs = cloneInputs(currentInputs);
     }
 
-    // Snapshot the live response as expected status + body (headers stay optional).
-    if (responseData) {
-      const snapped = snapshotResponseExpect({
-        status: typeof responseData.status === "number" ? responseData.status : undefined,
-        body: responseData.body as JSONValue | undefined,
+    // Soft expect: snapshot extracted output values (equality checks).
+    const definedOutputKeys = Object.keys(api.outputs || {});
+    const softExpect: JSONRecord = {};
+    if (definedOutputKeys.length > 0) {
+      definedOutputKeys.forEach((key) => {
+        if (Object.prototype.hasOwnProperty.call(outputs, key)) {
+          softExpect[key] = outputs[key];
+        }
       });
-      if (snapped) {
-        newExample.expect = snapped;
-      }
+    }
+    // Response snapshot expect: status + body for the response Expect tab.
+    const responseExpect = responseData
+      ? snapshotResponseExpect({
+          status: typeof responseData.status === "number" ? responseData.status : undefined,
+          body: responseData.body as JSONValue | undefined,
+        })
+      : undefined;
+    const mergedExpect = {
+      ...(responseExpect || {}),
+      ...softExpect,
+    };
+    if (Object.keys(mergedExpect).length > 0) {
+      newExample.expect = mergedExpect;
     }
 
     const updatedExamples = [...(sessionApi.examples || []), newExample];
@@ -2134,6 +2150,36 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 onResetKey={selectedExampleIdx === -1 ? handleResetInputKey : undefined}
               />
             )}
+            {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
+              <ApiTestsEditor
+                test={{
+                  expect: exampleExpect(examples[selectedExampleIdx]),
+                }}
+                results={apiTestResults}
+                fieldSuggestions={outputFieldSuggestions}
+                canContainToken
+                valueContext={bodyValueContext}
+                onChange={(next) => {
+                  const nextExamples = examples.map((ex, i) => {
+                    if (i !== selectedExampleIdx) {
+                      return ex;
+                    }
+                    const updated = { ...ex };
+                    // Migrating off deprecated outputs when writing expect.
+                    if (updated.outputs !== undefined) {
+                      delete updated.outputs;
+                    }
+                    if (next?.expect) {
+                      updated.expect = next.expect;
+                    } else {
+                      delete updated.expect;
+                    }
+                    return updated;
+                  });
+                  updateSession({ examples: nextExamples });
+                }}
+              />
+            ) : null}
         </div>
         </KeptTabPanel>
       )}

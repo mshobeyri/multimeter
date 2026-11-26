@@ -42,7 +42,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 | **Headers** | Request headers |
 | **Body** | Request body (format bar, pretty/raw). Token vs resolved display follows the [request mode](./request-modes.md) |
 | **Cookies** | Request cookies |
-| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs**. Pencil edits declarations. Fields with `<<i:name>> [options]` in `description` show a ⋯ value picker. Badge shows input count |
+| **Inputs** | **Example** dropdown (**Select...** or `id - title`) + **+**; declared/runtime **Inputs**; soft **Expect** checks when an example is selected. Pencil edits declarations. Fields with `<<i:name>> [options]` in `description` show a ⋯ value picker. Badge shows input count |
 | **Doc** | **Title**, **tags**, and **description** (Markdown). Pencil per section to edit |
 | **GraphQL** / **gRPC** | Only when that protocol is selected (Body / Params / Cookies are hidden then) |
 
