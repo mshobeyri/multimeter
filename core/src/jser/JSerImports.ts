@@ -18,6 +18,8 @@ import {bindCachedImportFn, CACHED_IMPORT_FN, getRunFileCache} from '../runner/r
 
 /** Structured import/codegen error so the UI can open the offending file. */
 export class ImportCodeError extends Error {
+  /** Marks this as a structural failure for suite-item classification. */
+  readonly kind = 'import-error' as const;
   readonly path?: string;
   readonly detail: string;
 

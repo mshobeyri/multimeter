@@ -4,6 +4,7 @@ import {applyRunDebugToRequestSteps, safeStepId} from '../util/identifierUtils';
 import {lookupPostmanDynamicName} from '../convert/postmanConvertor';
 import {TestData, TestFlowHttp, TestFlowStep} from '../data/TestData';
 import {validateTestData} from './testParsePack';
+import {ValidationError} from './validationError';
 
 const HTTP_METHODS = new Set([
   'get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace', 'connect',
@@ -569,7 +570,7 @@ export function brunoToTestStrict(content: string, filePath = ''): TestData {
   const errors = validateBrunoDocument(content).map(warning => `line ${warning.line}: ${warning.message}`);
   const structuralErrors = validateTestData(test);
   if (errors.length > 0 || structuralErrors.length > 0) {
-    throw new Error('Invalid Bruno test file:\n' + [...errors, ...structuralErrors].map(e => `  - ${e}`).join('\n'));
+    throw new ValidationError('Invalid Bruno test file:\n' + [...errors, ...structuralErrors].map(e => `  - ${e}`).join('\n'));
   }
   return test;
 }

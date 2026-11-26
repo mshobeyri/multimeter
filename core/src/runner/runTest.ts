@@ -1,11 +1,12 @@
 import {LogLevel} from '../data/CommonData';
 import * as JSer from '../jser/JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
-import {GenerateJsOptions, mergeInputs, RunFileOptions, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
+import {GenerateJsOptions, mergeInputs, RunFileOptions, RunResult, TestOutputsReporterEvent, TestRunSummaryEvent, TestStepReporterEvent} from './runConfig';
 import * as testParsePack from '../parse/testParsePack';
 import {brunoToTest, brunoToTestStrict, isBrunoFilePath} from '../parse/brunoParsePack';
 import {httpToTest, httpToTestStrict, isHttpFilePath} from '../parse/httpParsePack';
 import parseYaml from '../parse/markupConvertor';
+import {isValidationError} from '../parse/validationError';
 import {restoreOmitKeyword} from '../tokens/omitKeyword';
 import {resolveInputsMap} from '../tokens/variableReplacer';
 import {TestData} from '../data/TestData';
@@ -122,17 +123,48 @@ export async function executeTest(
   // Process store supplies e: at runtime; keep raw tokens in generated JS.
   const processEnv = options.envStore?.values ?? envVars;
   const resolvedInputs = resolveInputsMap(inputsUsed, processEnv);
-  const js = await generateTestJs({
-    rawText,
-    name: identifier,
-    inputs: inputsUsed,
-    envVars: {},
-    fileLoader: options.fileLoader,
-    filePath: prepared.filePath,
-    projectRoot: options.projectRoot,
-    // Use external report settings when running as part of a suite
-    isExternal: (options as any).__mmtIsSuiteBundleChildRun === true,
-  });
+  let js: string;
+  try {
+    js = await generateTestJs({
+      rawText,
+      name: identifier,
+      inputs: inputsUsed,
+      envVars: {},
+      fileLoader: options.fileLoader,
+      filePath: prepared.filePath,
+      projectRoot: options.projectRoot,
+      // Use external report settings when running as part of a suite
+      isExternal: (options as any).__mmtIsSuiteBundleChildRun === true,
+    });
+  } catch (e: unknown) {
+    if (!isValidationError(e)) {
+      throw e;
+    }
+    const message = e instanceof Error ? e.message : String(e);
+    options.logger('error', message);
+    const result: RunResult = {
+      success: false,
+      durationMs: 0,
+      errors: [message],
+      validationError: true,
+      threw: true,
+      executionError: message,
+    };
+    if (preLogs.length) {
+      result.logs = preLogs.map((l) => l.message);
+    }
+    return {
+      js: '',
+      result,
+      identifier,
+      displayName,
+      docType,
+      inputsUsed: resolvedInputs,
+      envVarsUsed: processEnv,
+      exampleName: prepared.exampleName,
+      exampleIndex: prepared.exampleIndex,
+    };
+  }
   const result = await runGeneratedJs(
       runId, js, displayName, options.logger, options.jsRunner, stepReporter,
       (options as any).id, options.fileLoader, setenvReporter,

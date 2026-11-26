@@ -1,28 +1,35 @@
 import {
   classifySuiteItemStatus,
-  isValidationErrorMessage,
   worstSuiteItemStatus,
 } from './suiteItemStatus';
+import {isValidationError, ValidationError} from '../parse/validationError';
+import {ImportCodeError} from '../jser/JSerImports';
+import {FileImportError} from '../convert/fileImporter';
 import {runFile} from '../runner/runner';
 import {buildSuiteHierarchyFromSuiteFile} from './suiteHierarchy';
 import {createSuiteBundle} from './suiteBundle';
 import {runGeneratedJs} from '../runner/runCommon';
 import {AssertionFailedError} from '../runner/testHelper';
 
-describe('suiteItemStatus', () => {
-  it('detects validation messages', () => {
-    expect(isValidationErrorMessage('Invalid test file: missing type')).toBe(true);
-    expect(isValidationErrorMessage('Import error: circular')).toBe(true);
-    expect(isValidationErrorMessage('Check 1 == 2 failed')).toBe(false);
+describe('isValidationError', () => {
+  it('recognizes ValidationError, ImportCodeError, and FileImportError', () => {
+    expect(isValidationError(new ValidationError('bad yaml'))).toBe(true);
+    expect(isValidationError(new ImportCodeError('circular'))).toBe(true);
+    expect(isValidationError(new FileImportError('missing-file', 'gone'))).toBe(true);
+    expect(isValidationError(new Error('check failed'))).toBe(false);
+    expect(isValidationError(new AssertionFailedError())).toBe(false);
+    expect(isValidationError(null)).toBe(false);
   });
+});
 
-  it('classifies passed / invalid / failed', () => {
+describe('suiteItemStatus', () => {
+  it('classifies passed / invalid / failed from typed flags', () => {
     expect(classifySuiteItemStatus({success: true, durationMs: 1, errors: []})).toBe('passed');
     expect(classifySuiteItemStatus({
       success: false, durationMs: 1, errors: [], syntaxError: true,
     })).toBe('invalid');
     expect(classifySuiteItemStatus({
-      success: false, durationMs: 1, errors: ['Invalid test file: bad'],
+      success: false, durationMs: 1, errors: ['Invalid test file: bad'], validationError: true,
     })).toBe('invalid');
     expect(classifySuiteItemStatus({
       success: false, durationMs: 1, errors: [], threw: true,
@@ -30,6 +37,16 @@ describe('suiteItemStatus', () => {
     })).toBe('invalid');
     expect(classifySuiteItemStatus({
       success: false, durationMs: 1, errors: ['check failed'],
+    })).toBe('failed');
+  });
+
+  it('does not treat validation-looking messages as invalid without a typed flag', () => {
+    // A check title that happens to mention YAML must stay a normal failure.
+    expect(classifySuiteItemStatus({
+      success: false, durationMs: 1, errors: ['YAML body mismatch'],
+    })).toBe('failed');
+    expect(classifySuiteItemStatus({
+      success: false, durationMs: 1, errors: ['Invalid test file: bad'],
     })).toBe('failed');
   });
 
@@ -63,6 +80,22 @@ describe('assertion abort is not an execution error', () => {
     expect(result.success).toBe(false);
     expect(result.executionError).toBeUndefined();
     expect(result.threw).toBe(false);
+  });
+
+  it('marks ValidationError throws with validationError', async () => {
+    const result = await runGeneratedJs(
+        'run-validation',
+        'throw new Error("unused");',
+        'Validation Test',
+        () => undefined,
+        async () => {
+          throw new ValidationError('Invalid test file: unknown key(s)');
+        },
+    );
+    expect(result.success).toBe(false);
+    expect(result.validationError).toBe(true);
+    expect(result.threw).toBe(true);
+    expect(classifySuiteItemStatus(result)).toBe('invalid');
   });
 });
 

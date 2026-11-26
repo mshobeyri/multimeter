@@ -1,4 +1,5 @@
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
+import {ValidationError} from './validationError';
 import {quoteExpectOperators} from './expectOperatorYaml';
 import {isNonEmptyList, isNonEmptyObject} from '../util/safer';
 import {FlowType, TestData, TestFlowStep, TestFlowSteps, TestFlowStages} from '../data/TestData';
@@ -377,10 +378,10 @@ export function getTestFlowStepType(step: TestFlowStep): FlowType|'unknown' {
 export function yamlToTestStrict(yamlContent: string): TestData {
   const doc = parseYamlStrict(quoteExpectOperators(yamlContent)) as any;
   if (!doc || typeof doc !== 'object') {
-    throw new Error('Invalid test file: YAML content is empty or not an object');
+    throw new ValidationError('Invalid test file: YAML content is empty or not an object');
   }
   if (doc.type !== 'test') {
-    throw new Error(`Invalid test file: expected type "test" but got "${doc.type || '(none)'}"`);
+    throw new ValidationError(`Invalid test file: expected type "test" but got "${doc.type || '(none)'}"`);
   }
   // Backwards compatibility: allow legacy 'flow' key as alias for 'steps'
   if (!doc.steps && Array.isArray(doc.flow)) {
@@ -389,7 +390,7 @@ export function yamlToTestStrict(yamlContent: string): TestData {
   // Check for unknown root-level keys
   const unknownRootKeys = Object.keys(doc).filter(k => !VALID_TEST_ROOT_KEYS.has(k));
   if (unknownRootKeys.length > 0) {
-    throw new Error(`Invalid test file: unknown key(s): ${unknownRootKeys.map(k => `"${k}"`).join(', ')}`);
+    throw new ValidationError(`Invalid test file: unknown key(s): ${unknownRootKeys.map(k => `"${k}"`).join(', ')}`);
   }
   const test: TestData = {
     type: doc.type || '',
@@ -405,7 +406,7 @@ export function yamlToTestStrict(yamlContent: string): TestData {
   };
   const errors = validateTestData(test);
   if (errors.length > 0) {
-    throw new Error('Invalid test file:\n' + errors.map(e => `  - ${e}`).join('\n'));
+    throw new ValidationError('Invalid test file:\n' + errors.map(e => `  - ${e}`).join('\n'));
   }
   return test;
 }

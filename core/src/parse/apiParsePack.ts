@@ -22,6 +22,7 @@ import {
   ResponseFormat,
 } from '../data/CommonData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
+import {ValidationError} from './validationError';
 import {isNonEmptyList, isNonEmptyObject, safeList} from '../util/safer';
 import type {ExpectMap} from '../data/TestData';
 import {coerceYamlString} from './yamlIncompleteScalar';
@@ -159,7 +160,7 @@ function assertExampleKeys(examplesRaw: any): void {
     }
     const unknown = Object.keys(ex).filter(k => !VALID_EXAMPLE_KEYS.has(k));
     if (unknown.length > 0) {
-      throw new Error(
+      throw new ValidationError(
           `Invalid API file: unknown key(s) in examples #${i + 1}: ${
               unknown.map(k => `"${k}"`).join(', ')}`);
     }
@@ -209,7 +210,7 @@ function assertUniqueExampleIds(examples: ExampleData[]): void {
     }
     const prev = seen.get(id);
     if (typeof prev === 'number') {
-      throw new Error(
+      throw new ValidationError(
           `Invalid API file: duplicate example id "${id}" (examples #${prev + 1} and #${i + 1})`);
     }
     seen.set(id, i);
@@ -255,31 +256,31 @@ export function validateAuth(raw: any): AuthConfig | undefined {
     return 'none';
   }
   if (typeof raw !== 'object') {
-    throw new Error(`Invalid auth: expected an object or "none", got ${typeof raw}`);
+    throw new ValidationError(`Invalid auth: expected an object or "none", got ${typeof raw}`);
   }
   if (!raw.type || !VALID_AUTH_TYPES.has(raw.type)) {
-    throw new Error(`Invalid auth type: "${raw.type || '(none)'}". Must be one of: ${[...VALID_AUTH_TYPES].join(', ')}`);
+    throw new ValidationError(`Invalid auth type: "${raw.type || '(none)'}". Must be one of: ${[...VALID_AUTH_TYPES].join(', ')}`);
   }
   switch (raw.type) {
     case 'bearer':
       if (raw.token == null) {
-        throw new Error('Invalid auth: bearer requires "token" field');
+        throw new ValidationError('Invalid auth: bearer requires "token" field');
       }
       return {type: 'bearer', token: String(raw.token)};
     case 'basic':
       if (raw.username == null || raw.password == null) {
-        throw new Error('Invalid auth: basic requires "username" and "password" fields');
+        throw new ValidationError('Invalid auth: basic requires "username" and "password" fields');
       }
       return {type: 'basic', username: String(raw.username), password: String(raw.password)};
     case 'api-key':
       if (raw.value == null) {
-        throw new Error('Invalid auth: api-key requires "value" field');
+        throw new ValidationError('Invalid auth: api-key requires "value" field');
       }
       if (raw.header == null && raw.query == null) {
-        throw new Error('Invalid auth: api-key requires either "header" or "query" field');
+        throw new ValidationError('Invalid auth: api-key requires either "header" or "query" field');
       }
       if (raw.header != null && raw.query != null) {
-        throw new Error('Invalid auth: api-key must have exactly one of "header" or "query", not both');
+        throw new ValidationError('Invalid auth: api-key must have exactly one of "header" or "query", not both');
       }
       return {
         type: 'api-key',
@@ -288,16 +289,16 @@ export function validateAuth(raw: any): AuthConfig | undefined {
       };
     case 'oauth2':
       if (raw.grant != null && raw.grant !== 'client_credentials') {
-        throw new Error('Invalid auth: oauth2 requires grant: "client_credentials"');
+        throw new ValidationError('Invalid auth: oauth2 requires grant: "client_credentials"');
       }
       if (raw.token_url == null) {
-        throw new Error('Invalid auth: oauth2 requires "token_url" field');
+        throw new ValidationError('Invalid auth: oauth2 requires "token_url" field');
       }
       if (raw.client_id == null) {
-        throw new Error('Invalid auth: oauth2 requires "client_id" field');
+        throw new ValidationError('Invalid auth: oauth2 requires "client_id" field');
       }
       if (raw.client_secret == null) {
-        throw new Error('Invalid auth: oauth2 requires "client_secret" field');
+        throw new ValidationError('Invalid auth: oauth2 requires "client_secret" field');
       }
       return {
         type: 'oauth2',
@@ -403,55 +404,55 @@ export function yamlToAPI(yamlContent: string): APIData {
 export function yamlToAPIStrict(yamlContent: string): APIData {
   const doc = parseYamlStrict(yamlContent) as any;
   if (!doc || typeof doc !== 'object') {
-    throw new Error('Invalid API file: YAML content is empty or not an object');
+    throw new ValidationError('Invalid API file: YAML content is empty or not an object');
   }
   if (doc.type !== 'api') {
-    throw new Error(`Invalid API file: expected type "api" but got "${doc.type || '(none)'}"`);
+    throw new ValidationError(`Invalid API file: expected type "api" but got "${doc.type || '(none)'}"`);
   }
   if (!doc.url) {
-    throw new Error('Invalid API file: missing required "url" field');
+    throw new ValidationError('Invalid API file: missing required "url" field');
   }
   const unknownKeys = Object.keys(doc).filter(k => !VALID_API_ROOT_KEYS.has(k));
   if (unknownKeys.length > 0) {
-    throw new Error(`Invalid API file: unknown key(s): ${unknownKeys.map(k => `"${k}"`).join(', ')}`);
+    throw new ValidationError(`Invalid API file: unknown key(s): ${unknownKeys.map(k => `"${k}"`).join(', ')}`);
   }
   if (doc.timeout !== undefined && (typeof doc.timeout !== 'number' || !Number.isFinite(doc.timeout) || doc.timeout < 0)) {
-    throw new Error('Invalid API file: "timeout" must be a non-negative number of milliseconds');
+    throw new ValidationError('Invalid API file: "timeout" must be a non-negative number of milliseconds');
   }
   // GraphQL protocol validation
   const graphql = parseGraphQLConfig(doc.graphql);
   if (doc.protocol === 'graphql') {
     if (!graphql || !graphql.operation) {
-      throw new Error('Invalid API file: protocol "graphql" requires "graphql.operation" field');
+      throw new ValidationError('Invalid API file: protocol "graphql" requires "graphql.operation" field');
     }
     if (doc.body) {
-      throw new Error('Invalid API file: "body" is not valid for protocol "graphql"; use "graphql.operation" and "graphql.variables" instead');
+      throw new ValidationError('Invalid API file: "body" is not valid for protocol "graphql"; use "graphql.operation" and "graphql.variables" instead');
     }
   }
   if (doc.graphql && doc.protocol && doc.protocol !== 'graphql') {
-    throw new Error(`Invalid API file: "graphql" block is ignored for protocol "${doc.protocol}"`);
+    throw new ValidationError(`Invalid API file: "graphql" block is ignored for protocol "${doc.protocol}"`);
   }
   // gRPC protocol validation
   const grpc = parseGrpcConfig(doc.grpc);
   if (doc.protocol === 'grpc') {
     if (!grpc || !grpc.service) {
-      throw new Error('Invalid API file: protocol "grpc" requires "grpc.service" field');
+      throw new ValidationError('Invalid API file: protocol "grpc" requires "grpc.service" field');
     }
     if (!grpc.method) {
-      throw new Error('Invalid API file: protocol "grpc" requires "grpc.method" field');
+      throw new ValidationError('Invalid API file: protocol "grpc" requires "grpc.method" field');
     }
     if (doc.body) {
-      throw new Error('Invalid API file: "body" is not valid for protocol "grpc"; use "grpc.message" instead');
+      throw new ValidationError('Invalid API file: "body" is not valid for protocol "grpc"; use "grpc.message" instead');
     }
     if (doc.query && Object.keys(doc.query).length > 0) {
-      throw new Error('Invalid API file: "query" is not valid for protocol "grpc"');
+      throw new ValidationError('Invalid API file: "query" is not valid for protocol "grpc"');
     }
     if (doc.cookies && Object.keys(doc.cookies).length > 0) {
-      throw new Error('Invalid API file: "cookies" is not valid for protocol "grpc"');
+      throw new ValidationError('Invalid API file: "cookies" is not valid for protocol "grpc"');
     }
   }
   if (doc.grpc && doc.protocol && doc.protocol !== 'grpc') {
-    throw new Error(`Invalid API file: "grpc" block is ignored for protocol "${doc.protocol}"`);
+    throw new ValidationError(`Invalid API file: "grpc" block is ignored for protocol "${doc.protocol}"`);
   }
   const auth = validateAuth(doc.auth);
   assertExampleKeys(doc.examples);

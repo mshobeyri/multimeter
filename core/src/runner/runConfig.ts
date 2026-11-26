@@ -120,6 +120,11 @@ export interface RunResult {
   apiTest?: import('./apiTestEval').ApiTestEvalResult;
   /** True when the generated JS failed syntax validation (bad .mmt syntax). */
   syntaxError?: boolean;
+  /**
+   * True when preparing/running the file hit a typed structural failure
+   * (ValidationError, ImportCodeError, FileImportError) rather than a check/assert.
+   */
+  validationError?: boolean;
   /** Set when generated JS threw during execution (e.g. ReferenceError). Assert throws use this too. */
   executionError?: string;
   /**

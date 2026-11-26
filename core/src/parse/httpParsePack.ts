@@ -3,6 +3,7 @@ import {Method} from '../data/CommonData';
 import {applyRunDebugToRequestSteps, safeStepId} from '../util/identifierUtils';
 import {TestData, TestFlowHttp, TestFlowSetEnv, TestFlowStep} from '../data/TestData';
 import {validateTestData} from './testParsePack';
+import {ValidationError} from './validationError';
 
 const HTTP_METHODS = new Set([
   'GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS', 'TRACE',
@@ -594,7 +595,7 @@ export function httpToTestStrict(content: string, filePath = ''): TestData {
   const errors = validateHttpDocument(content).map(warning => `line ${warning.line}: ${warning.message}`);
   const structuralErrors = validateTestData(test);
   if (errors.length > 0 || structuralErrors.length > 0) {
-    throw new Error('Invalid HTTP test file:\n' + [...errors, ...structuralErrors].map(e => `  - ${e}`).join('\n'));
+    throw new ValidationError('Invalid HTTP test file:\n' + [...errors, ...structuralErrors].map(e => `  - ${e}`).join('\n'));
   }
   return test;
 }

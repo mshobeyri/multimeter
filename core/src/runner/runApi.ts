@@ -1,11 +1,12 @@
 import {APIData, ApiTestBlock, exampleId, exampleTitle} from '../data/APIData';
 import {exampleToApiTestBlock, yamlToAPI, yamlToAPIStrict} from '../parse/apiParsePack';
+import {isValidationError} from '../parse/validationError';
 import {CREATE_API_LOG_HELPERS_SOURCE} from '../api-edit/apiLogHelpersFactorySource';
 import {evaluateApiTest} from './apiTestEval';
 import {LogLevel} from '../data/CommonData';
 import * as JSer from '../jser/JSer';
 import {isPlainObject, PreparedRun, RunFileResult, runGeneratedJs, sanitizeIdentifier} from './runCommon';
-import {FileLoader, mergeInputs, RunFileOptions} from './runConfig';
+import {FileLoader, mergeInputs, RunFileOptions, RunResult} from './runConfig';
 import {replaceAllRefs, resolveInputsMap} from '../tokens/variableReplacer';
 
 export interface ResolveExampleResult {
@@ -775,17 +776,48 @@ export async function executeApi(
   // Process store supplies e: at runtime; keep raw tokens in generated JS.
   const processEnv = options.envStore?.values ?? envVars;
   const resolvedInputs = resolveInputsMap(inputsUsed, processEnv);
-  const js = await generateApiJs({
-    api: apiDoc,
-    name: identifier,
-    envVars: {},
-    inputs: inputsUsed,
-    fileLoader,
-    exampleName,
-    exampleIndex,
-    exampleOutputs,
-    checkTitle: fileDisplayName,
-  });
+  let js: string;
+  try {
+    js = await generateApiJs({
+      api: apiDoc,
+      name: identifier,
+      envVars: {},
+      inputs: inputsUsed,
+      fileLoader,
+      exampleName,
+      exampleIndex,
+      exampleOutputs,
+      checkTitle: fileDisplayName,
+    });
+  } catch (e: unknown) {
+    if (!isValidationError(e)) {
+      throw e;
+    }
+    const message = e instanceof Error ? e.message : String(e);
+    options.logger('error', message);
+    const result: RunResult = {
+      success: false,
+      durationMs: 0,
+      errors: [message],
+      validationError: true,
+      threw: true,
+      executionError: message,
+    };
+    if (preLogs.length) {
+      result.logs = preLogs.map((l) => l.message);
+    }
+    return {
+      js: '',
+      result,
+      identifier,
+      displayName,
+      docType,
+      inputsUsed: resolvedInputs,
+      envVarsUsed: processEnv,
+      exampleName,
+      exampleIndex,
+    };
+  }
   // Forward reporter for direct API runs (network-request/response → History)
   // and suite-child setenv. Imported API call: from tests does not use this
   // executeApi wrapper path for the child function body.

@@ -8,6 +8,7 @@ import type {RunKind} from './runLog';
 import type {CollectedResults, LoadReportData} from '../report/reportCollector';
 import {RunResult, TestStepReporterEvent} from './runConfig';
 import type {SuiteEnvironment} from '../data/SuiteData';
+import {isValidationError} from '../parse/validationError';
 import {isAssertionFailedError, isTestAbortError} from './testHelper';
 
 export interface SuiteExportSpec {
@@ -198,6 +199,7 @@ export async function runGeneratedJs(
           'test';
       forward('error', `Error running ${kindLabel}: ${message}`);
     }
+    const isValidation = isValidationError(e);
     return {
       success: false,
       durationMs: Date.now() - start,
@@ -206,6 +208,7 @@ export async function runGeneratedJs(
       outputs: e?.mmtApiOutputs,
       threw: !isCancelled && !isAssertion,
       cancelled: isCancelled,
+      validationError: isValidation ? true : undefined,
       executionError: message,
     };
   }

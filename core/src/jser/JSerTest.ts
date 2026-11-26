@@ -6,6 +6,7 @@ import {importsToJsfuncDetailed} from './JSerImports';
 import {flowToJsFunc} from './JSerTestFlow';
 import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
 import {TestData} from '../data/TestData';
+import {ValidationError} from '../parse/validationError';
 import {
   normalizeEnvTokens,
   replaceAllRefs,
@@ -179,7 +180,7 @@ export const testToJsfunc = async(
         if (allowed) {
           const unknownInputs = Object.keys(step.inputs).filter(k => !allowed.has(k));
           if (unknownInputs.length > 0) {
-            throw new Error(
+            throw new ValidationError(
               `${context}[${i}]: call "${step.call}" has undefined input(s): ${unknownInputs.map(k => `"${k}"`).join(', ')}`
             );
           }
@@ -193,7 +194,7 @@ export const testToJsfunc = async(
           }
           const unknownOutputs = Object.keys(map).filter(k => !isAllowedOutputKeyReference(k, allowedOutputs));
           if (unknownOutputs.length > 0) {
-            throw new Error(
+            throw new ValidationError(
               `${context}[${i}]: call "${step.call}" has undefined output(s) in ${label}: ${unknownOutputs.map(k => `"${k}"`).join(', ')}`
             );
           }

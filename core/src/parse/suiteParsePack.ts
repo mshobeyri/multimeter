@@ -1,4 +1,5 @@
 import parseYaml, {packYaml} from './markupConvertor';
+import {ValidationError} from './validationError';
 import {SuiteData, SuiteEnvironment} from '../data/SuiteData';
 import {parseSuiteYamlFilter} from '../suite/suiteTagFilter';
 
@@ -45,12 +46,12 @@ export function yamlToSuite(rawYaml: string): SuiteData {
   const doc = parseYaml(rawYaml || '') || {};
   const type = typeof doc?.type === 'string' ? doc.type : '';
   if (type !== 'suite') {
-    throw new Error('Not a suite document');
+    throw new ValidationError('Not a suite document');
   }
 
   const items = readSuiteItems(doc);
   if (items.length === 0) {
-    throw new Error('Suite.items must be a non-empty array');
+    throw new ValidationError('Suite.items must be a non-empty array');
   }
 
   const tags = Array.isArray(doc.tags) ? doc.tags.filter((t: any) => typeof t === 'string').map((t: string) => t.trim()).filter(Boolean) : undefined;
@@ -133,7 +134,7 @@ export function splitSuiteGroups(items: string[]): string[][] {
 
   const flush = () => {
     if (current.length === 0) {
-      throw new Error('Suite.items contains an empty group (misplaced "then")');
+      throw new ValidationError('Suite.items contains an empty group (misplaced "then")');
     }
     groups.push(current);
     current = [];
@@ -152,7 +153,7 @@ export function splitSuiteGroups(items: string[]): string[][] {
   }
 
   if (current.length === 0) {
-    throw new Error('Suite.items cannot end with "then"');
+    throw new ValidationError('Suite.items cannot end with "then"');
   }
   groups.push(current);
   return groups;

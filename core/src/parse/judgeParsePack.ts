@@ -1,6 +1,7 @@
 import {AuthConfig} from '../data/APIData';
 import {JudgeData, JudgeDefaults, JudgeEngineId, JudgeOptions} from '../data/JudgeData';
 import parseYaml, {packYaml, parseYamlStrict} from './markupConvertor';
+import {ValidationError} from './validationError';
 
 const VALID_JUDGE_ROOT_KEYS = new Set([
   'type', 'title', 'description', 'tags', 'engine', 'model', 'url', 'auth',
@@ -77,14 +78,14 @@ export function yamlToJudgeStrict(yamlContent: string): JudgeData {
   const judge = objectToJudge(obj);
   const errors = validateJudgeObject(obj);
   if (errors.length > 0) {
-    throw new Error(errors.join('\n'));
+    throw new ValidationError(errors.join('\n'));
   }
   return judge;
 }
 
 export function objectToJudge(obj: any): JudgeData {
   if (!obj || typeof obj !== 'object') {
-    throw new Error('Invalid judge file: expected a YAML object');
+    throw new ValidationError('Invalid judge file: expected a YAML object');
   }
   const engine = String(obj.engine ?? '').trim();
   const model = String(obj.model ?? '').trim();
