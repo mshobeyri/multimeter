@@ -2,6 +2,26 @@
 
 All notable changes to the **Multimeter** extension will be documented in this file.
 
+## [1.51.1-pre]
+
+Pre-release. VS Code extension `1.51.1`; Testlight CLI and MCP `1.51.1-pre` on `@pre`.
+
+### API tester / examples
+
+- Soft **Expect** checks live under **Outputs** (view + edit); show actual output values beside field keys
+- For imported Postman / Bruno / OpenAPI example snapshots, replace the response Expect tab with a **map** icon that toggles live vs expected status / headers / body (expected values at 50% opacity)
+- Fix multi-value Expect pass/fail icons; drop standalone Outputs ticks
+- Align empty-state padding under Outputs (Expect / Setenv) with Doc description
+
+### Suite
+
+- Keep pending icons when starting a partial run; disable row Run while a run is active
+- Refresh the suite tree on run so edited imported suites show up
+- Roll up parent suite and group status after partial runs
+- Settle pending items at run end; handle stop before a partial run starts
+- Classify invalid suite status via typed validation errors; unify status rollup in core
+- Mark leftover running suite nodes invalid instead of failed
+
 ## [1.51.0-pre]
 
 Pre-release. VS Code extension `1.51.0`; Testlight CLI and MCP `1.51.0-pre` on `@pre`.
