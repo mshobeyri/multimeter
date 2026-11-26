@@ -386,7 +386,7 @@ describe('rollupAncestorRunStatus', () => {
 });
 
 describe('settleRunStateAtEnd', () => {
-  it('clears pending that never started and fails leftover running on a normal end', () => {
+  it('clears pending that never started and marks leftover running invalid on a normal end', () => {
     const prev: Record<string, StepStatus> = {
       'suite-node:0': 'invalid',
       'suite-node:0.0': 'pending',
@@ -395,7 +395,7 @@ describe('settleRunStateAtEnd', () => {
     };
     expect(settleRunStateAtEnd(prev, null, false)).toEqual({
       'suite-node:0': 'invalid',
-      'suite-node:0.1': 'failed',
+      'suite-node:0.1': 'invalid',
       'suite-node:0.2': 'passed',
     });
   });
@@ -420,7 +420,7 @@ describe('settleRunStateAtEnd', () => {
       'suite-node:0.1': 'pending',
     };
     expect(settleRunStateAtEnd(prev, 'suite-node:0.0', false)).toEqual({
-      'suite-node:0.0.1': 'failed',
+      'suite-node:0.0.1': 'invalid',
       'suite-node:0.1': 'pending',
     });
   });

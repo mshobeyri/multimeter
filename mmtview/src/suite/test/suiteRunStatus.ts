@@ -29,7 +29,8 @@ export function ownRunStatus(
 /**
  * Settle own-node states when a run is over (ended or stopped), limited to the
  * partial-run target subtree (or everything for a full run):
- * - `running` was never finished → `cancelled` when stopped, else `failed`;
+ * - `running` was never finished → `cancelled` when stopped, else `invalid`
+ *   (no finish event: not a check failure, not a user stop);
  * - `pending` never started (e.g. a mock server failed first) → `cancelled`
  *   when stopped, else cleared back to default instead of a clock forever.
  * Returns `prev` itself when nothing changed.
@@ -53,7 +54,7 @@ export function settleRunStateAtEnd(
     if (cancelled) {
       next[id] = 'cancelled';
     } else if (status === 'running') {
-      next[id] = 'failed';
+      next[id] = 'invalid';
     } else {
       delete next[id];
     }
