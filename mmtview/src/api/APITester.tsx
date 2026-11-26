@@ -5,7 +5,11 @@ import { SplitPane } from "@rexxars/react-split-pane";
 import { extractInputConstraintsFromDescription } from "mmt-core/api-edit/paramConstraints";
 import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/data/APIData";
 import { JSONRecord, JSONValue, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/data/CommonData";
-import { hasExampleResponseSnapshot } from "mmt-core/api-edit/exampleExpectView";
+import {
+  hasExampleResponseSnapshot,
+  parseExampleExpectView,
+} from "mmt-core/api-edit/exampleExpectView";
+import type { Response } from "mmt-core/data/NetworkData";
 import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
@@ -60,7 +64,6 @@ import FadePane from "../components/FadePane";
 import KVEditor from "../components/KVEditor";
 import { safeList } from "mmt-core/util/safer";
 import ApiTestsEditor from "./ApiTestsEditor";
-import ExampleExpectPanel from "./ExampleExpectPanel";
 import ApiSettingsEditor from "./ApiSettingsEditor";
 import ApiAuthEditor from "./ApiAuthEditor";
 import { formatBody } from "mmt-core/parse/markupConvertor";
@@ -121,7 +124,7 @@ type EditorTab =
   | "grpc"
   | "inputs";
 
-type ResponseTab = "body" | "headers" | "cookies" | "outputs" | "expect";
+type ResponseTab = "body" | "headers" | "cookies" | "outputs";
 type RequestResponseLayout = "stacked" | "side-by-side";
 
 function countNamedEntries(record?: Record<string, unknown> | null): number {
@@ -231,8 +234,19 @@ const RESPONSE_TAB_OPTIONS: Array<{ key: ResponseTab; label: string }> = [
   { key: "headers", label: "Headers" },
   { key: "cookies", label: "Cookies" },
   { key: "outputs", label: "Outputs" },
-  { key: "expect", label: "Expect" },
 ];
+
+function statusFromExpectSnapshot(
+    status: number | string | undefined,
+): number | undefined {
+  if (typeof status === "number" && Number.isFinite(status)) {
+    return status;
+  }
+  if (typeof status === "string" && /^-?\d+$/.test(status.trim())) {
+    return Number(status.trim());
+  }
+  return undefined;
+}
 
 const REQUEST_PANE_RATIO_KEY = "apitest-request-pane-ratio";
 const REQUEST_RESPONSE_LAYOUT_KEY = "apitest-request-response-layout";
@@ -678,15 +692,70 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     return autoFormatBody ? "pretty" : "raw";
   });
+  /** Per-file session: map icon shows imported expected response over live. */
+  const expectedResponseByFileRef = useRef<Record<string, boolean>>({});
+  const [showExpectedResponse, setShowExpectedResponse] = useState(false);
+
+  /** Imported example response snapshot (Postman / Bruno / OpenAPI) for selected example. */
+  const selectedExampleResponseSnapshot = useMemo(() => {
+    if (selectedExampleIdx < 0 || !examples[selectedExampleIdx]) {
+      return undefined;
+    }
+    const expect = exampleExpect(examples[selectedExampleIdx]);
+    if (!hasExampleResponseSnapshot(expect)) {
+      return undefined;
+    }
+    return parseExampleExpectView(expect);
+  }, [examples, selectedExampleIdx]);
+
+  const canShowExpectedResponse = Boolean(selectedExampleResponseSnapshot);
+  const showingExpectedResponse =
+      canShowExpectedResponse && showExpectedResponse;
+  const expectedStatus = useMemo(
+    () => statusFromExpectSnapshot(selectedExampleResponseSnapshot?.status),
+    [selectedExampleResponseSnapshot],
+  );
+
+  const viewedResponse = useMemo((): Response | undefined => {
+    if (!showingExpectedResponse || !selectedExampleResponseSnapshot) {
+      return responseData;
+    }
+    const headers = selectedExampleResponseSnapshot.headers
+      ? Object.fromEntries(
+          Object.entries(selectedExampleResponseSnapshot.headers).map(([key, value]) => [
+            key,
+            value == null ? "" : String(value),
+          ]),
+        )
+      : {};
+    return {
+      ...(responseData || {
+        errorMessage: "",
+        errorCode: "",
+      }),
+      status: expectedStatus,
+      headers,
+      body: selectedExampleResponseSnapshot.body,
+      errorMessage: "",
+      errorCode: "",
+      warning: undefined,
+    };
+  }, [
+    expectedStatus,
+    responseData,
+    selectedExampleResponseSnapshot,
+    showingExpectedResponse,
+  ]);
+
   const responseDisplay = useMemo(
-    () => resolveResponseDisplayState(responseData, {
+    () => resolveResponseDisplayState(viewedResponse, {
       type: currentResponseFormat,
       view: responseViewMode,
       requestFormat: currentRequestFormat,
       requestHeaders: requestData?.headers,
     }),
     [
-      responseData,
+      viewedResponse,
       currentResponseFormat,
       responseViewMode,
       currentRequestFormat,
@@ -754,12 +823,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
   const [responseTab, setResponseTabInternal] = useState<ResponseTab>(() => {
     const saved = localStorage.getItem(RESPONSE_TAB_KEY);
-    // Legacy combined response In/Out tab → Outputs.
-    if (saved === "inout") {
-      return "outputs";
+    // Legacy combined response In/Out tab → Outputs. Legacy "expect" → Body.
+    if (saved === "inout" || saved === "expect") {
+      return saved === "inout" ? "outputs" : "body";
     }
-    if (saved === "body" || saved === "headers" || saved === "cookies" || saved === "outputs" ||
-        saved === "expect") {
+    if (saved === "body" || saved === "headers" || saved === "cookies" || saved === "outputs") {
       return saved;
     }
     return "body";
@@ -892,6 +960,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const shouldShowResponse = () => responseTab === "body";
 
   const canExtractOutput = Boolean(responseData) &&
+    !showingExpectedResponse &&
     responseTab === "body" &&
     Boolean(responseBodyToolbar?.canInspect);
   const extractTitle = responseTab === "body"
@@ -1468,64 +1537,31 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       });
   }, [api.cookies, api.headers, api.inputs, isGraphQL, isGrpc]);
 
-  /** Expect to show: selected example, else first example that has expect. */
-  const displayExampleExpect = useMemo(() => {
-    if (selectedExampleIdx >= 0 && examples[selectedExampleIdx]) {
-      return exampleExpect(examples[selectedExampleIdx]);
-    }
-    for (const ex of examples) {
-      const expect = exampleExpect(ex);
-      if (expect) {
-        return expect;
-      }
-    }
-    return undefined;
-  }, [examples, selectedExampleIdx]);
-
-  const showExampleResponseTab = useMemo(
-    () => hasExampleResponseSnapshot(displayExampleExpect),
-    [displayExampleExpect],
-  );
-
-  const expectedStatus = useMemo(() => {
-    if (!showExampleResponseTab || !displayExampleExpect) {
-      return undefined;
-    }
-    const raw = displayExampleExpect.status ??
-        displayExampleExpect.status_code ??
-        displayExampleExpect.statusCode;
-    if (typeof raw === "number" && Number.isFinite(raw)) {
-      return raw;
-    }
-    if (typeof raw === "string" && /^-?\d+$/.test(raw.trim())) {
-      return Number(raw.trim());
-    }
-    return undefined;
-  }, [displayExampleExpect, showExampleResponseTab]);
-
   const responseOverflowTabs = useMemo((): OverflowTabItem<ResponseTab>[] => {
-    return RESPONSE_TAB_OPTIONS
-      .filter(tab => tab.key !== "expect" || showExampleResponseTab)
-      .map(tab => {
-        const count = tab.key === "headers"
-          ? countNamedEntries(responseData?.headers)
-          : tab.key === "cookies"
-            ? countNamedEntries(responseData?.cookies)
-            : tab.key === "outputs"
-              ? outputKeys.length + setenvKeys.length
-              : 0;
-        return {
-          id: tab.key,
-          label: tab.label,
-          count: count > 0 ? count : undefined,
-        };
-      });
+    const headerSource = showingExpectedResponse
+      ? selectedExampleResponseSnapshot?.headers
+      : responseData?.headers;
+    return RESPONSE_TAB_OPTIONS.map(tab => {
+      const count = tab.key === "headers"
+        ? countNamedEntries(headerSource as Record<string, unknown> | undefined)
+        : tab.key === "cookies"
+          ? countNamedEntries(responseData?.cookies)
+          : tab.key === "outputs"
+            ? outputKeys.length + setenvKeys.length
+            : 0;
+      return {
+        id: tab.key,
+        label: tab.label,
+        count: count > 0 ? count : undefined,
+      };
+    });
   }, [
     outputKeys.length,
     responseData?.cookies,
     responseData?.headers,
+    selectedExampleResponseSnapshot?.headers,
     setenvKeys.length,
-    showExampleResponseTab,
+    showingExpectedResponse,
   ]);
 
   // Keep/warm only request+response data tabs — not Doc / Auth / Settings.
@@ -1545,10 +1581,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   const keepResponseTab = useKeptTabs(responseTab, responseTabIds, mmtFilePath || "");
 
   useEffect(() => {
-    if (responseTab === "expect" && !showExampleResponseTab) {
-      setResponseTab("body");
+    const key = mmtFilePath || "";
+    setShowExpectedResponse(Boolean(expectedResponseByFileRef.current[key]));
+  }, [mmtFilePath]);
+
+  useEffect(() => {
+    if (!canShowExpectedResponse && showExpectedResponse) {
+      setShowExpectedResponse(false);
     }
-  }, [responseTab, showExampleResponseTab]);
+  }, [canShowExpectedResponse, showExpectedResponse]);
+
+  const setExpectedResponseVisible = (next: boolean) => {
+    const key = mmtFilePath || "";
+    expectedResponseByFileRef.current[key] = next;
+    setShowExpectedResponse(next);
+  };
 
   return (
     <TokenModeContext.Provider value={tokenModeState}>
@@ -2158,7 +2205,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           showRule={false}
           gap
         />
-        {responseData ? (
+        {(responseData || showingExpectedResponse) ? (
           <>
             <div
               className={`apitest-tabs-tools${shouldShowResponse() ? "" : " is-hidden"}`}
@@ -2181,9 +2228,11 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </>
         ) : null}
         <div className="apitest-response-meta">
-          {responseTab === "expect" ? (
+          {showingExpectedResponse ? (
             expectedStatus !== undefined ? (
-              <ResponseStatus status={expectedStatus} />
+              <span className="apitest-response-expected">
+                <ResponseStatus status={expectedStatus} />
+              </span>
             ) : null
           ) : (
             <>
@@ -2200,10 +2249,36 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
               )}
             </>
           )}
-          {(responseTab === "expect" ? expectedStatus !== undefined : Boolean(responseData)) ? (
+          {(showingExpectedResponse
+              ? expectedStatus !== undefined
+              : Boolean(responseData)) ? (
             <span className="apitest-tabs-tools-divider" aria-hidden />
           ) : null}
           <div className="bodyview-header-actions">
+            {canShowExpectedResponse ? (
+              <button
+                type="button"
+                className={`button-icon no-shrink section-edit-toggle${
+                  showingExpectedResponse ? " is-active" : ""
+                }`}
+                onMouseDown={event => event.preventDefault()}
+                onClick={() => setExpectedResponseVisible(!showingExpectedResponse)}
+                title={showingExpectedResponse
+                  ? "Hide expected values"
+                  : "Show expected values"}
+                aria-label={showingExpectedResponse
+                  ? "Hide expected values"
+                  : "Show expected values"}
+                aria-pressed={showingExpectedResponse}
+              >
+                <span
+                  className={`codicon ${
+                    showingExpectedResponse ? "codicon-map-filled" : "codicon-map"
+                  }`}
+                  aria-hidden
+                />
+              </button>
+            ) : null}
             {responseTab === "body" ? (
             <button
               type="button"
@@ -2262,14 +2337,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       </div>
       <div className="apitest-pane-fill">
       <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={100}>
-        {keepResponseTab("expect") && (
-          <KeptTabPanel key="expect" active={responseTab === "expect"}>
-          <div className="apitest-section">
-            <ExampleExpectPanel expect={displayExampleExpect} />
-          </div>
-          </KeptTabPanel>
-        )}
-
         {keepResponseTab("outputs") && (
           <KeptTabPanel key="outputs" active={responseTab === "outputs"}>
           <div className="apitest-section">
@@ -2403,17 +2470,21 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
 
         {keepResponseTab("headers") && (
           <KeptTabPanel key="resp-headers" active={responseTab === "headers"}>
-          <div className="apitest-section">
-          {responseData && countNamedEntries(responseData.headers) > 0 ? (
+          <div className={`apitest-section${showingExpectedResponse ? " apitest-response-expected" : ""}`}>
+          {viewedResponse && countNamedEntries(viewedResponse.headers) > 0 ? (
             <KSVEditor
               label=""
-              value={responseData.headers || {}}
+              value={viewedResponse.headers || {}}
               onChange={() => { }}
               deactivated={true}
-              onExtractRow={key => handleAddOutputExpression(`headers.${key}`, key)}
+              onExtractRow={showingExpectedResponse
+                ? undefined
+                : key => handleAddOutputExpression(`headers.${key}`, key)}
             />
           ) : (
-            <div className="apitest-empty">No response headers.</div>
+            <div className="apitest-empty">
+              {showingExpectedResponse ? "No expected headers." : "No response headers."}
+            </div>
           )}
           </div>
           </KeptTabPanel>
@@ -2441,14 +2512,16 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
             first response does not pay Monaco cold-start; also kept across tab switches. */}
         {keepResponseTab("body") && (
           <KeptTabPanel key="resp-body" active={responseTab === "body"}>
-          <div className="apitest-section">
+          <div className={`apitest-section${showingExpectedResponse ? " apitest-response-expected" : ""}`}>
           <div className="apitest-body-pane">
             <div className="apitest-body-wrapper">
               <ResponseBodyContent
                 display={responseDisplay}
-                refreshKey={responseRevision}
+                refreshKey={responseRevision + (showingExpectedResponse ? 1_000_000_000 : 0)}
                 requestUrl={requestData?.url}
-                onInspectPosition={handleAddOutputVariable}
+                onInspectPosition={showingExpectedResponse
+                  ? undefined
+                  : handleAddOutputVariable}
                 onToolbarChange={setResponseBodyToolbar}
               />
             </div>
@@ -2457,12 +2530,13 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </KeptTabPanel>
         )}
       </FadePane>
-      {(requestInFlight || (!responseData && responseTab !== "outputs" && responseTab !== "expect")) ? (
+      {(requestInFlight ||
+          (!responseData && !showingExpectedResponse && responseTab !== "outputs")) ? (
         <NoResponseYet
           onSend={sendWithResolvedBody}
           onCancel={handleCancel}
           sending={requestInFlight}
-          dimmed={Boolean(responseData) && requestInFlight}
+          dimmed={Boolean(responseData || showingExpectedResponse) && requestInFlight}
         />
       ) : null}
       </div>

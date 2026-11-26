@@ -386,6 +386,11 @@
   flex-shrink: 0;
 }
 
+/* Imported snapshot overlay — dim so it reads as expected, not live. */
+.apitest-response-expected {
+  opacity: 0.5;
+}
+
 .apitest-response-meta {
   display: flex;
   align-items: center;
@@ -451,30 +456,6 @@
 .apitest-example {
   width: 100%;
   padding-bottom: 20px;
-}
-
-.apitest-example-expect > .label {
-  margin-top: 8px;
-  margin-bottom: 4px;
-}
-
-.apitest-example-expect > .label:first-child {
-  margin-top: 0;
-}
-
-.apitest-example-expect-body {
-  margin: 0;
-  padding: 8px 10px;
-  white-space: pre-wrap;
-  word-break: break-word;
-  font-family: var(--vscode-editor-font-family, monospace);
-  font-size: var(--vscode-editor-font-size, 12px);
-  line-height: 1.45;
-  color: var(--vscode-editor-foreground);
-  background: transparent;
-  border: none;
-  overflow: auto;
-  max-height: 100%;
 }
 
 .apitest-tab-count {
@@ -1028,7 +1009,7 @@
 }
 
 .button-icon.is-active:hover,
-.button-icon.is-active:focus {
+.button-icon.is-active:focus-visible {
   color: var(--vscode-foreground, #cccccc);
   background: color-mix(in srgb, currentColor 26%, transparent);
 }
@@ -1222,7 +1203,7 @@
 }
 
 .section-edit-toggle:hover,
-.section-edit-toggle:focus {
+.section-edit-toggle:focus-visible {
   background: transparent !important;
   border: none !important;
   opacity: 1;
@@ -1240,9 +1221,9 @@
 }
 
 .section-edit-toggle.is-active:hover,
-.section-edit-toggle.is-active:focus,
+.section-edit-toggle.is-active:focus-visible,
 .section-edit-toggle.button-icon.is-active:hover,
-.section-edit-toggle.button-icon.is-active:focus {
+.section-edit-toggle.button-icon.is-active:focus-visible {
   color: var(--vscode-foreground, #cccccc);
   background: color-mix(in srgb, currentColor 26%, transparent) !important;
   border: none !important;
