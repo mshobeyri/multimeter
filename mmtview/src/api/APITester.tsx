@@ -5,7 +5,7 @@ import { SplitPane } from "@rexxars/react-split-pane";
 import { extractInputConstraintsFromDescription } from "mmt-core/api-edit/paramConstraints";
 import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/data/APIData";
 import { JSONRecord, JSONValue, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/data/CommonData";
-import { snapshotResponseExpect } from "mmt-core/api-edit/exampleExpectView";
+import { hasExampleResponseSnapshot } from "mmt-core/api-edit/exampleExpectView";
 import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
@@ -1415,7 +1415,9 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       newExample.inputs = cloneInputs(currentInputs);
     }
 
-    // Soft expect: snapshot extracted output values (equality checks).
+    // Soft expect only: snapshot extracted output values (equality checks).
+    // Response snapshots (status/headers/body) come from Postman / Bruno / OpenAPI
+    // import — not from native MMT "add example".
     const definedOutputKeys = Object.keys(api.outputs || {});
     const softExpect: JSONRecord = {};
     if (definedOutputKeys.length > 0) {
@@ -1425,19 +1427,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         }
       });
     }
-    // Response snapshot expect: status + body for the response Expect tab.
-    const responseExpect = responseData
-      ? snapshotResponseExpect({
-          status: typeof responseData.status === "number" ? responseData.status : undefined,
-          body: responseData.body as JSONValue | undefined,
-        })
-      : undefined;
-    const mergedExpect = {
-      ...(responseExpect || {}),
-      ...softExpect,
-    };
-    if (Object.keys(mergedExpect).length > 0) {
-      newExample.expect = mergedExpect;
+    if (Object.keys(softExpect).length > 0) {
+      newExample.expect = softExpect;
     }
 
     const updatedExamples = [...(sessionApi.examples || []), newExample];
@@ -1491,10 +1482,18 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     return undefined;
   }, [examples, selectedExampleIdx]);
 
+  const showExampleResponseTab = useMemo(
+    () => hasExampleResponseSnapshot(displayExampleExpect),
+    [displayExampleExpect],
+  );
+
   const expectedStatus = useMemo(() => {
-    const raw = displayExampleExpect?.status ??
-        displayExampleExpect?.status_code ??
-        displayExampleExpect?.statusCode;
+    if (!showExampleResponseTab || !displayExampleExpect) {
+      return undefined;
+    }
+    const raw = displayExampleExpect.status ??
+        displayExampleExpect.status_code ??
+        displayExampleExpect.statusCode;
     if (typeof raw === "number" && Number.isFinite(raw)) {
       return raw;
     }
@@ -1502,24 +1501,32 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       return Number(raw.trim());
     }
     return undefined;
-  }, [displayExampleExpect]);
+  }, [displayExampleExpect, showExampleResponseTab]);
 
   const responseOverflowTabs = useMemo((): OverflowTabItem<ResponseTab>[] => {
-    return RESPONSE_TAB_OPTIONS.map(tab => {
-      const count = tab.key === "headers"
-        ? countNamedEntries(responseData?.headers)
-        : tab.key === "cookies"
-          ? countNamedEntries(responseData?.cookies)
-          : tab.key === "outputs"
-            ? outputKeys.length + setenvKeys.length
-            : 0;
-      return {
-        id: tab.key,
-        label: tab.label,
-        count: count > 0 ? count : undefined,
-      };
-    });
-  }, [outputKeys.length, responseData?.cookies, responseData?.headers, setenvKeys.length]);
+    return RESPONSE_TAB_OPTIONS
+      .filter(tab => tab.key !== "expect" || showExampleResponseTab)
+      .map(tab => {
+        const count = tab.key === "headers"
+          ? countNamedEntries(responseData?.headers)
+          : tab.key === "cookies"
+            ? countNamedEntries(responseData?.cookies)
+            : tab.key === "outputs"
+              ? outputKeys.length + setenvKeys.length
+              : 0;
+        return {
+          id: tab.key,
+          label: tab.label,
+          count: count > 0 ? count : undefined,
+        };
+      });
+  }, [
+    outputKeys.length,
+    responseData?.cookies,
+    responseData?.headers,
+    setenvKeys.length,
+    showExampleResponseTab,
+  ]);
 
   // Keep/warm only request+response data tabs — not Doc / Auth / Settings.
   const requestTabIds = useMemo(
@@ -1536,6 +1543,12 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
   );
   const keepEditorTab = useKeptTabs(editorTab, requestTabIds, mmtFilePath || "");
   const keepResponseTab = useKeptTabs(responseTab, responseTabIds, mmtFilePath || "");
+
+  useEffect(() => {
+    if (responseTab === "expect" && !showExampleResponseTab) {
+      setResponseTab("body");
+    }
+  }, [responseTab, showExampleResponseTab]);
 
   return (
     <TokenModeContext.Provider value={tokenModeState}>

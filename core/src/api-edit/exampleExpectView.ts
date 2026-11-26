@@ -35,9 +35,23 @@ function pickStatus(expect: ExpectMap): number | string | undefined {
 }
 
 /**
- * Split an example expect map into status / headers / body for the Expect tab.
- * When `body` is missing, leftover non-meta keys are treated as a flattened body
- * (Postman-style saved responses).
+ * True when expect looks like an imported example response snapshot
+ * (OpenAPI / Postman / Bruno saved response), not soft check rows alone.
+ */
+export function hasExampleResponseSnapshot(
+    expect: ExpectMap | null | undefined,
+    ): boolean {
+  if (!expect || typeof expect !== 'object' || Array.isArray(expect)) {
+    return false;
+  }
+  return Object.prototype.hasOwnProperty.call(expect, 'body') ||
+      Object.prototype.hasOwnProperty.call(expect, 'headers');
+}
+
+/**
+ * Split an example expect map into status / headers / body for the Example
+ * response tab. Only structured `body` / `headers` count as a snapshot; soft
+ * check keys stay in `other` (do not invent a flattened body from them).
  */
 export function parseExampleExpectView(
     expect: ExpectMap | null | undefined,
@@ -50,27 +64,15 @@ export function parseExampleExpectView(
       {...(expect.headers as JSONRecord)} :
       undefined;
 
-  let body: JSONValue | undefined;
-  let other: ExpectMap = {};
-  if (Object.prototype.hasOwnProperty.call(expect, 'body')) {
-    body = expect.body as JSONValue;
-    for (const [key, value] of Object.entries(expect)) {
-      if (META_KEYS.has(key)) {
-        continue;
-      }
-      other[key] = value;
+  const body = Object.prototype.hasOwnProperty.call(expect, 'body') ?
+      expect.body as JSONValue :
+      undefined;
+  const other: ExpectMap = {};
+  for (const [key, value] of Object.entries(expect)) {
+    if (META_KEYS.has(key)) {
+      continue;
     }
-  } else {
-    const flatBody: Record<string, ExpectValue> = {};
-    for (const [key, value] of Object.entries(expect)) {
-      if (META_KEYS.has(key)) {
-        continue;
-      }
-      flatBody[key] = value;
-    }
-    if (Object.keys(flatBody).length > 0) {
-      body = flatBody as JSONValue;
-    }
+    other[key] = value;
   }
 
   return {status, headers, body, other};

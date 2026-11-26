@@ -52,7 +52,7 @@ When the YAML on the left has errors, the tester keeps the last valid UI. The to
 | **Headers** | Response headers. {{btn:sign-out}} on a value adds that header to `outputs:` |
 | **Cookies** | Response cookies. {{btn:sign-out}} on a value adds that cookie to `outputs:` |
 | **Outputs** | Extracted **Outputs** values after Send, soft **Expect** checks for the selected example, and **Setenv**. Pencil edits extraction / setenv expressions. Badge shows outputs + setenv count |
-| **Expect** | Read-only expected **status** (badge), **headers**, and **body** for the selected example |
+| **Expect** | Read-only expected **status** (badge), **headers**, and **body** when the example has an imported response snapshot (Postman / Bruno / OpenAPI) |
 
 Send sits on the URL row (next to the method+URL control). Duration, status, history, clear-response, and the request/response layout toggle sit at the right of the response tab bar. See [Outputs](./outputs.md).
 

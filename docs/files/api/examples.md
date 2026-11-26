@@ -6,7 +6,7 @@ Define example inputs and soft **expect** checks so you can run them as smoke te
 
 **YAML editor** — Each example with an `id:` (or legacy `name:`) shows a {{btn:run}} glyph in the left margin on that line. Click it to run that example through core; Multimeter opens the log output.
 
-**API tester** — On the **Inputs** tab, use the **Example** dropdown to pick **Select...** (API default inputs) or an example (`id - title`). Request-side **Inputs** pre-fill for the next {{btn:send:Send}}. Response **Outputs** shows extracted values and soft **Expect** check rows for the selected example; response **Expect** is a separate read-only status / headers / body snapshot. After Send, soft expect rows show pass/fail. Use **+** to add a new test from the current inputs (and extracted values / response snapshot as expect). Editing inputs while an example is selected writes to that example. Pencil on **Inputs** / **Outputs** edits declared defaults and extraction paths.
+**API tester** — On the **Inputs** tab, use the **Example** dropdown to pick **Select...** (API default inputs) or an example (`id - title`). Request-side **Inputs** pre-fill for the next {{btn:send:Send}}. Response **Outputs** shows extracted values and soft **Expect** check rows for the selected example. The response **Expect** tab (status / headers / body snapshot) appears only for imported example responses from Postman, Bruno, or OpenAPI. After Send, soft expect rows show pass/fail. Use **+** to add a new example from the current inputs (and extracted output values as soft expect). Editing inputs while an example is selected writes to that example. Pencil on **Inputs** / **Outputs** edits declared defaults and extraction paths.
 
 ```yaml
 examples:
@@ -42,7 +42,7 @@ Prefer `id` + `title`. Example `id` should use only ASCII letters, digits, `_`, 
 
 ## UI features
 
-- **Example dropdown** (**Inputs** tab): Switch between **Select...** (API default inputs) and examples (`id - title`); inputs update immediately. Soft **Expect** checks are edited on the response **Outputs** tab (under Outputs); the response **Expect** tab shows expected status / headers / body. Pencil on Inputs/Outputs edits declarations.
+- **Example dropdown** (**Inputs** tab): Switch between **Select...** (API default inputs) and examples (`id - title`); inputs update immediately. Soft **Expect** checks are edited on the response **Outputs** tab (under Outputs). The response **Expect** tab (imported status / headers / body) shows only when the example has that snapshot. Pencil on Inputs/Outputs edits declarations.
 - **Input options menu** (⋯): When `description` annotates an input with `[...]` allowed values (for example `<<i:role>> [admin, editor, viewer]`), that field on the **Inputs** tab shows a ⋯ control to pick a value — see [Documentation](./documentation.md).
 - **Method override button**: Temporarily change the HTTP method from the UI without editing the YAML. Useful for quick testing of the same endpoint with different methods.
 - **Copyable outputs**: Output values on the Examples response pane can be copied with a click.

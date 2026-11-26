@@ -1,6 +1,7 @@
 import {
   buildExampleExpect,
   exampleExpectBodyToText,
+  hasExampleResponseSnapshot,
   parseExampleExpectView,
   snapshotResponseExpect,
   textToExampleExpectBody,
@@ -19,7 +20,7 @@ describe('exampleExpectView', () => {
     });
   });
 
-  it('treats flattened Postman fields as body when body key is absent', () => {
+  it('keeps soft-check keys in other when body key is absent', () => {
     expect(parseExampleExpectView({
       status: 201,
       statusCode: 201,
@@ -28,8 +29,8 @@ describe('exampleExpectView', () => {
     })).toEqual({
       status: 201,
       headers: undefined,
-      body: {id: 1, name: 'Ada'},
-      other: {},
+      body: undefined,
+      other: {id: 1, name: 'Ada'},
     });
   });
 
@@ -44,6 +45,16 @@ describe('exampleExpectView', () => {
       body: {ok: true},
       other: {'body.token': '!= null'},
     });
+  });
+
+  it('detects response snapshots only when body or headers is present', () => {
+    expect(hasExampleResponseSnapshot({status: 200, body: {ok: true}})).toBe(true);
+    expect(hasExampleResponseSnapshot({
+      headers: {'Content-Type': 'application/json'},
+    })).toBe(true);
+    expect(hasExampleResponseSnapshot({status: 200, id: 1})).toBe(false);
+    expect(hasExampleResponseSnapshot({token: 'abc'})).toBe(false);
+    expect(hasExampleResponseSnapshot(undefined)).toBe(false);
   });
 
   it('builds status/headers/body and drops duplicate status aliases', () => {

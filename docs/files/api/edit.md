@@ -11,7 +11,7 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 | **Doc** | `title`, `tags`, `description` — click the pencil next to a section to edit |
 | **Inputs** (request) | Declared `inputs` (pencil), runtime example values |
 | **Outputs** (response) | Declared `outputs` / `setenv` (pencil); view mode shows extracted / env values; soft **Expect** check rows after Outputs |
-| **Expect** (response) | Read-only expected status (badge), headers, and body snapshot |
+| **Expect** (response) | Read-only expected status (badge), headers, and body — only when the example has an imported response snapshot |
 | **Params** / **Headers** / **Body** / **Cookies** | Request message fields (same as Send) |
 
 ### Settings
@@ -32,7 +32,7 @@ See [Documentation](./documentation.md) and [Input and output documentation](../
 ### Inputs / Outputs
 
 - **Inputs** (request pane): Example dropdown and declared/runtime inputs. When `description` lists allowed values with `<<i:name>> [...]`, those fields show a ⋯ options menu (same as the test runner)
-- **Outputs** (response pane): pencil switches between extraction paths and values after Send; soft **Expect** checks for the selected example sit under Outputs; **Setenv** works like Outputs (edit expressions / view env values). The response **Expect** tab is a separate read-only status/headers/body snapshot.
+- **Outputs** (response pane): pencil switches between extraction paths and values after Send; soft **Expect** checks for the selected example sit under Outputs; **Setenv** works like Outputs (edit expressions / view env values). The response **Expect** tab is a separate read-only status/headers/body snapshot for imported Postman / Bruno / OpenAPI example responses — hidden for native soft-check-only examples.
 
 Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear on their protocol tabs. See [Protocols](./protocols/index.md).
 
