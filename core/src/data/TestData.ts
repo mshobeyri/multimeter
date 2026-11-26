@@ -64,15 +64,28 @@ export type ExpectValue = ScalarExpectValue | null | Record<string, any> | any[]
 
 /**
  * Map of output field names to expected values.
- * Each value can be a single ExpectValue. Arrays of operator-prefixed scalar
- * values are also supported for multiple checks on the same field.
+ * Each value can be a single ExpectValue. Arrays of scalars (plain equality
+ * values and/or operator-prefixed strings) are multiple checks on the same
+ * field — not a single deep-equal against an array.
  * Examples:
  *   status_code: 200              → == 200 (default equality)
  *   status_code: == 200           → == 200
+ *   status_code: [200, 201]       → two == checks
  *   status_code: [== 200, != 500] → two checks
  *   body.user.name: == John       → nested path access
  */
 export type ExpectMap = Record<string, ExpectValue | ScalarExpectValue[]>;
+
+/**
+ * True when an expect map value is a list of per-check scalars (UI / YAML list
+ * form), not one deep-equal array expectation.
+ */
+export function isExpectMultiCheckArray(value: unknown): value is ScalarExpectValue[] {
+  return Array.isArray(value) &&
+      value.length > 0 &&
+      value.every(item => typeof item === 'string' || typeof item === 'number' ||
+          typeof item === 'boolean');
+}
 
 export interface TestImportItem {
   [key: string]: string;

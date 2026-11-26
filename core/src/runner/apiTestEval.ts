@@ -10,8 +10,8 @@ import {isLiteralTokenValue, unwrapLiteralToken} from '../tokens/literalToken';
 import {isOmitSentinel} from '../tokens/omitKeyword';
 import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
 import type {TestStepStatus} from './runConfig';
-import type {ExpectMap, ExpectValue, ScalarExpectValue} from '../data/TestData';
-import {splitCheckOperatorPrefix} from '../data/TestData';
+import type {ExpectMap, ExpectValue} from '../data/TestData';
+import {isExpectMultiCheckArray} from '../data/TestData';
 import {applyValueAccessor} from '../tokens/variableReplacer';
 
 const DEFAULT_OUTPUT_KEY_SET = new Set(DEFAULT_OUTPUT_KEYS);
@@ -30,14 +30,6 @@ export interface ApiTestEvalResult {
   softFailed: boolean;
   /** True when there was at least one expect or require entry. */
   hasChecks: boolean;
-}
-
-function isExplicitMultiCheckArray(value: unknown): value is ScalarExpectValue[] {
-  return Array.isArray(value) &&
-      value.length > 0 &&
-      value.every(item => typeof item === 'string' || typeof item === 'number' ||
-          typeof item === 'boolean') &&
-      value.some(item => typeof item === 'string' && !!splitCheckOperatorPrefix(item.trim()));
 }
 
 function expectValueToDisplay(value: ExpectValue): string {
@@ -89,7 +81,7 @@ function expandMapItems(
   }
   const items: ApiTestExpectItem[] = [];
   for (const [field, val] of Object.entries(map)) {
-    const values = isExplicitMultiCheckArray(val) ? val : [val];
+    const values = isExpectMultiCheckArray(val) ? val : [val];
     for (const v of values) {
       const parsed = parseExpectValue(v as ExpectValue);
       const operator = parsed.operator;

@@ -124,6 +124,23 @@ describe('evaluateApiTest', () => {
     expect(result.items.every(i => i.status === 'passed')).toBe(true);
   });
 
+  it('expands plain scalar lists into standalone checks', () => {
+    const result = evaluateApiTest(
+        {status_code: 200, key: 'alpha'},
+        {expect: {status_code: [200, 201], key: 'alpha'}},
+    );
+    expect(result.items).toHaveLength(3);
+    expect(result.items.map(i => ({
+      comparison: i.comparison,
+      status: i.status,
+    }))).toEqual([
+      {comparison: 'status_code == 200', status: 'passed'},
+      {comparison: 'status_code == 201', status: 'failed'},
+      {comparison: 'key == alpha', status: 'passed'},
+    ]);
+    expect(result.softFailed).toBe(true);
+  });
+
   it('marks require failures as hardFailed', () => {
     const result = evaluateApiTest({status: 500, _: {status: 500}}, {
       expect: {status: 200},

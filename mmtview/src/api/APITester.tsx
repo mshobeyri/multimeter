@@ -601,30 +601,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     return out;
   }, [setenvKeys, setenvValues]);
 
-  /** Per declared output: pass/fail vs selected example expect after Send. */
-  const outputMatchStatus = useMemo(() => {
-    const map = new Map<string, "match" | "mismatch">();
-    if (!apiTestResults?.length || outputKeys.length === 0) {
-      return map;
-    }
-    const keySet = new Set(outputKeys);
-    for (const item of apiTestResults) {
-      if (item.level !== "expect") {
-        continue;
-      }
-      const field = String(item.comparison || "").split(/\s+/)[0];
-      if (!field || !keySet.has(field)) {
-        continue;
-      }
-      if (item.status === "failed") {
-        map.set(field, "mismatch");
-      } else if (item.status === "passed" && map.get(field) !== "mismatch") {
-        map.set(field, "match");
-      }
-    }
-    return map;
-  }, [apiTestResults, outputKeys]);
-
   const effectiveProtocol = protocolResolver.getEffectiveProtocol(
     requestData?.protocol || sessionApi.protocol,
     sessionApi.url,
@@ -2311,7 +2287,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 readOnly
                 deletable={false}
                 copyable
-                matchStatus={outputMatchStatus}
               />
             ) : (
               <div className="apitest-empty">No outputs defined.</div>

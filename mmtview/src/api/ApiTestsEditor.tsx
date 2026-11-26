@@ -139,9 +139,19 @@ const ApiTestsEditor: React.FC<ApiTestsEditorProps> = ({
       return undefined;
     }
     const op = rowOperator(row);
+    const expectedDisplay = canContainToken
+      ? expectStoredToDisplay(row.expected)
+      : row.expected;
+    // Match each check on its own comparison — never fall back to "any result
+    // for this field", or multi-expect fields steal each other's pass/fail.
     const comparison = `${row.field} ${op} ${row.expected}`;
+    const comparisonDisplay = `${row.field} ${op} ${expectedDisplay}`;
     return resultByComparison.get(comparison) ||
-        results.find(r => r.level === "expect" && r.comparison.startsWith(`${row.field} `));
+        resultByComparison.get(comparisonDisplay) ||
+        results.find(r => (
+          r.level === "expect" &&
+          (r.comparison === comparison || r.comparison === comparisonDisplay)
+        ));
   };
 
   const resultIcon = (row: CheckClauseRow) => {

@@ -8,7 +8,7 @@ import {
   parseDurationString,
   toInputsParams,
 } from './JSerHelper';
-import {Comparison, ComparisonObject, comparisonOperatorPattern, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, getTimeOperatorBase, getTimeOperatorVelocity, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, isTimeAnyOperator, normalizeReportConfig, ReportConfig, ReportLevel, ScalarExpectValue, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from '../data/TestData';
+import {Comparison, ComparisonObject, comparisonOperatorPattern, DEFAULT_FUZZY_PERCENT, ExpectMap, ExpectValue, getTimeOperatorBase, getTimeOperatorVelocity, isExpectMultiCheckArray, isFuzzyPercentOperator, isFuzzyPercentSelectOperator, isQuotedExpectLiteral, isTimeAnyOperator, normalizeReportConfig, ReportConfig, ReportLevel, ScalarExpectValue, splitCheckOperatorPrefix, TestData, TestFlowAssert, TestFlowCall, TestFlowCheck, TestFlowCondition, TestFlowHttp, TestFlowJudge, TestFlowLoop, TestFlowRepeat, TestFlowRun, TestFlowStages, TestFlowStep, TestFlowSteps, unquoteExpectLiteral} from '../data/TestData';
 import {getTestFlowStepType} from '../parse/testParsePack';
 import {DEFAULT_OUTPUT_KEYS} from '../extract/outputExtractor';
 import {isLiteralTokenValue, unwrapLiteralToken} from '../tokens/literalToken';
@@ -649,12 +649,7 @@ export const parseExpectValue = (value: ExpectValue): { operator: string; expect
   return { operator: '==', expected: trimmed };
 };
 
-const isExplicitMultiCheckArray = (value: unknown): value is ScalarExpectValue[] => {
-  return Array.isArray(value) &&
-      value.length > 0 &&
-      value.every(item => typeof item === 'string' || typeof item === 'number' || typeof item === 'boolean') &&
-      value.some(item => typeof item === 'string' && !!splitCheckOperatorPrefix(item.trim()));
-};
+const isExplicitMultiCheckArray = isExpectMultiCheckArray;
 
 const expectValueToJs = (
     value: ExpectValue, knownInputNames?: ReadonlySet<string>): string => {

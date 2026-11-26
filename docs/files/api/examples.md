@@ -6,7 +6,7 @@ Define example inputs and soft **expect** checks so you can run them as smoke te
 
 **YAML editor** — Each example with an `id:` (or legacy `name:`) shows a {{btn:run}} glyph in the left margin on that line. Click it to run that example through core; Multimeter opens the log output.
 
-**API tester** — On the **Inputs** tab, use the **Example** dropdown to pick **Select...** (API default inputs) or an example (`id - title`). Request-side **Inputs** pre-fill for the next {{btn:send:Send}}. Response **Outputs** shows extracted values and soft **Expect** check rows for the selected example; response **Expect** is a separate read-only status / headers / body snapshot. After Send, soft expect rows and matching outputs show pass/fail. Use **+** to add a new test from the current inputs (and extracted values / response snapshot as expect). Editing inputs while an example is selected writes to that example. Pencil on **Inputs** / **Outputs** edits declared defaults and extraction paths.
+**API tester** — On the **Inputs** tab, use the **Example** dropdown to pick **Select...** (API default inputs) or an example (`id - title`). Request-side **Inputs** pre-fill for the next {{btn:send:Send}}. Response **Outputs** shows extracted values and soft **Expect** check rows for the selected example; response **Expect** is a separate read-only status / headers / body snapshot. After Send, soft expect rows show pass/fail. Use **+** to add a new test from the current inputs (and extracted values / response snapshot as expect). Editing inputs while an example is selected writes to that example. Pencil on **Inputs** / **Outputs** edits declared defaults and extraction paths.
 
 ```yaml
 examples:
