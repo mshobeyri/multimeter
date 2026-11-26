@@ -7,6 +7,7 @@ import { formatReportRelativeTime } from 'mmt-core/report/reportFormat';
 import { splitSuiteGroups } from 'mmt-core/parse/suiteParsePack';
 import { parseSuiteYamlFilter } from 'mmt-core/suite/suiteTagFilter';
 import { createSuiteNodeId } from 'mmt-core/suite/suiteNodeId';
+import { aggregateStepStatuses } from 'mmt-core/suite/suiteItemStatus';
 import { StepStatus } from '../../shared/types';
 import { SuiteEntry, SuiteGroup } from '../types';
 import type { SuiteTestTreeHandle } from './SuiteTestTree';
@@ -1316,14 +1317,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 } else if (mode === 'loadtest' && typeof (message as any).success === 'boolean') {
                     setSuiteRunState((message as any).success ? 'passed' : 'failed');
                 } else {
-                    const vals = Object.values(runDataStore.getRunStateById());
-                    const hasFailed = vals.some(v => v === 'failed');
-                    const hasInvalid = vals.some(v => v === 'invalid');
-                    setSuiteRunState(
-                        hasFailed ? 'failed' :
-                        hasInvalid ? 'invalid' :
-                        vals.some(v => v === 'skipped') && !vals.some(v => v === 'passed' || v === 'running') ? 'skipped' :
-                        'passed');
+                    const rolled = aggregateStepStatuses(Object.values(runDataStore.getRunStateById()));
+                    // Toolbar has no "default" chrome state after a finished run.
+                    setSuiteRunState((rolled === 'default' ? 'passed' : rolled) as StepStatus);
                 }
                 if (suiteRunStartTimeRef.current) {
                     setSuiteRunDurationMs(Date.now() - suiteRunStartTimeRef.current);

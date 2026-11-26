@@ -1,6 +1,13 @@
 import {RunResult, SuiteStepStatus} from '../runner/runConfig';
 
 /**
+ * Statuses that can be rolled up. Includes UI-only values (`default`,
+ * `cancelled`, `debug`) so webview and core share one rule set.
+ */
+export type AggregatableStepStatus =
+  SuiteStepStatus|'default'|'cancelled'|'debug';
+
+/**
  * Map a child run result to a suite-item status:
  * - invalid: unusable file, import/structure problems, or unexpected runtime exception (warning)
  * - failed: checks/asserts failed (fail icon)
@@ -33,22 +40,66 @@ export function classifySuiteItemStatus(result?: RunResult|null): SuiteStepStatu
   return 'failed';
 }
 
-/** Prefer failed (assertions/checks) over invalid (structure/runtime issues). Skipped is weakest. */
-export function worstSuiteItemStatus(statuses: SuiteStepStatus[]): SuiteStepStatus {
+/**
+ * Single "worst wins" rollup for suite/group/tree status icons.
+ *
+ * Priority (first match wins):
+ *   running > cancelled > failed > invalid > pending > default > passed > skipped
+ *
+ * Rules:
+ * - Live states (`running` / `cancelled` / `pending`) stay visible on the parent.
+ * - Outcome order matches suite reporting: failed beats invalid; skipped is weakest.
+ * - A never-run child (`default`, `debug`, null/undefined) keeps the parent at
+ *   `default`, unless a sibling already failed or is invalid (those are decisive).
+ * - All skipped (and nothing else) → `skipped`. Empty input → `default`.
+ */
+export function aggregateStepStatuses(
+    statuses: ReadonlyArray<AggregatableStepStatus|null|undefined>,
+): AggregatableStepStatus {
+  let anyRunning = false;
+  let anyCancelled = false;
   let anyFailed = false;
   let anyInvalid = false;
+  let anyPending = false;
+  let anyUnknown = false;
   let anyPassed = false;
   let anySkipped = false;
-  for (const s of statuses) {
-    if (s === 'failed') {
-      anyFailed = true;
-    } else if (s === 'invalid') {
-      anyInvalid = true;
-    } else if (s === 'passed' || s === 'running' || s === 'pending') {
-      anyPassed = true;
-    } else if (s === 'skipped') {
-      anySkipped = true;
+  let anySeen = false;
+
+  for (const status of statuses) {
+    if (status == null) {
+      anyUnknown = true;
+      continue;
     }
+    anySeen = true;
+    if (status === 'running') {
+      anyRunning = true;
+    } else if (status === 'cancelled') {
+      anyCancelled = true;
+    } else if (status === 'failed') {
+      anyFailed = true;
+    } else if (status === 'invalid') {
+      anyInvalid = true;
+    } else if (status === 'pending') {
+      anyPending = true;
+    } else if (status === 'passed') {
+      anyPassed = true;
+    } else if (status === 'skipped') {
+      anySkipped = true;
+    } else {
+      // default, debug, or anything else → treat as never-run / unknown
+      anyUnknown = true;
+    }
+  }
+
+  if (!anySeen && !anyUnknown) {
+    return 'default';
+  }
+  if (anyRunning) {
+    return 'running';
+  }
+  if (anyCancelled) {
+    return 'cancelled';
   }
   if (anyFailed) {
     return 'failed';
@@ -56,11 +107,35 @@ export function worstSuiteItemStatus(statuses: SuiteStepStatus[]): SuiteStepStat
   if (anyInvalid) {
     return 'invalid';
   }
+  if (anyPending) {
+    return 'pending';
+  }
+  if (anyUnknown) {
+    return 'default';
+  }
   if (anyPassed) {
     return 'passed';
   }
   if (anySkipped) {
     return 'skipped';
   }
-  return 'passed';
+  return 'default';
+}
+
+/**
+ * Core suite-item aggregator. Same rules as {@link aggregateStepStatuses}, with
+ * UI-only results mapped into {@link SuiteStepStatus}:
+ * - `default` → `passed` (empty / never-run should not surface as a suite item)
+ * - `cancelled` → `failed` (suite items have no cancelled status)
+ * - `debug` → `passed`
+ */
+export function worstSuiteItemStatus(statuses: SuiteStepStatus[]): SuiteStepStatus {
+  const rolled = aggregateStepStatuses(statuses);
+  if (rolled === 'default' || rolled === 'debug') {
+    return 'passed';
+  }
+  if (rolled === 'cancelled') {
+    return 'failed';
+  }
+  return rolled;
 }

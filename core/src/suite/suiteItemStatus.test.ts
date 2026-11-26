@@ -1,4 +1,5 @@
 import {
+  aggregateStepStatuses,
   classifySuiteItemStatus,
   worstSuiteItemStatus,
 } from './suiteItemStatus';
@@ -63,6 +64,33 @@ describe('suiteItemStatus', () => {
     expect(worstSuiteItemStatus(['skipped'])).toBe('skipped');
     expect(worstSuiteItemStatus(['skipped', 'passed'])).toBe('passed');
     expect(worstSuiteItemStatus(['skipped', 'failed'])).toBe('failed');
+  });
+
+  it('preserves live suite-item states instead of treating them as passed', () => {
+    expect(worstSuiteItemStatus(['passed', 'running'])).toBe('running');
+    expect(worstSuiteItemStatus(['failed', 'running'])).toBe('running');
+    expect(worstSuiteItemStatus(['passed', 'pending'])).toBe('pending');
+    expect(worstSuiteItemStatus([])).toBe('passed');
+  });
+});
+
+describe('aggregateStepStatuses', () => {
+  it('uses live-state then outcome priority', () => {
+    expect(aggregateStepStatuses(['passed', 'running', 'failed'])).toBe('running');
+    expect(aggregateStepStatuses(['passed', 'cancelled'])).toBe('cancelled');
+    expect(aggregateStepStatuses(['passed', 'failed', 'invalid'])).toBe('failed');
+    expect(aggregateStepStatuses(['passed', 'invalid', 'skipped'])).toBe('invalid');
+    expect(aggregateStepStatuses(['passed', 'pending'])).toBe('pending');
+    expect(aggregateStepStatuses(['passed', 'skipped'])).toBe('passed');
+    expect(aggregateStepStatuses(['skipped', 'skipped'])).toBe('skipped');
+  });
+
+  it('keeps never-run children as default unless a sibling already failed', () => {
+    expect(aggregateStepStatuses([])).toBe('default');
+    expect(aggregateStepStatuses(['passed', 'default'])).toBe('default');
+    expect(aggregateStepStatuses(['skipped', null])).toBe('default');
+    expect(aggregateStepStatuses(['failed', 'default'])).toBe('failed');
+    expect(aggregateStepStatuses(['invalid', 'debug'])).toBe('invalid');
   });
 });
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { statusIcons } from 'mmt-core';
+import { aggregateStepStatuses } from 'mmt-core/suite/suiteItemStatus';
 import { PAUSE_CIRCLE_ICON, StatusGlyph } from '../components/StatusGlyph';
 import { StepStatus } from './types';
 
@@ -80,53 +81,7 @@ export const StatusIconWithCache: React.FC<{
   );
 };
 
+/** Shared with core suite rollup (`aggregateStepStatuses`). */
 export const aggregateStatuses = (statuses: Array<StepStatus | undefined | null>): StepStatus => {
-    let anyFailed = false;
-    let anyInvalid = false;
-    let anyCancelled = false;
-    let anyRunning = false;
-    let anyPending = false;
-    let anySeen = false;
-    let allPassed = statuses.length > 0;
-
-    for (const s of statuses) {
-        if (!s) {
-            allPassed = false;
-            continue;
-        }
-        anySeen = true;
-        if (s === 'running') {
-            anyRunning = true;
-        } else if (s === 'failed') {
-            anyFailed = true;
-        } else if (s === 'invalid') {
-            anyInvalid = true;
-        } else if (s === 'cancelled') {
-            anyCancelled = true;
-        } else if (s === 'pending') {
-            anyPending = true;
-        } else if (s !== 'passed' && s !== 'skipped') {
-            allPassed = false;
-        }
-    }
-
-    if (anyRunning) {
-        return 'running';
-    }
-    if (anyCancelled) {
-        return 'cancelled';
-    }
-    if (anyFailed) {
-        return 'failed';
-    }
-    if (anyInvalid) {
-        return 'invalid';
-    }
-    if (anyPending) {
-        return 'pending';
-    }
-    if (allPassed && anySeen) {
-        return 'passed';
-    }
-    return 'default';
+    return aggregateStepStatuses(statuses) as StepStatus;
 };

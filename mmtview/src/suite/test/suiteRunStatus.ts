@@ -1,4 +1,5 @@
 import { createSuiteNodeId } from 'mmt-core/suite/suiteNodeId';
+import { aggregateStepStatuses } from 'mmt-core/suite/suiteItemStatus';
 import { StepStatus } from '../../shared/types';
 import type { SuiteGroup } from '../types';
 import type { SuiteTreeNode } from './suiteHierarchy';
@@ -81,62 +82,10 @@ export function finishRunState(
 
 /**
  * Roll child run states into one parent state.
- *
- * Core only reports a group/suite status for the nodes a run actually executed,
- * so after re-running one leaf the parents would keep a stale `failed`. This
- * is the same "worst wins" order core uses (failed > invalid > passed > skipped),
- * plus the UI-only states:
- * - any running / cancelled / pending child keeps the parent in that state;
- * - a child that has never run (default) keeps the parent unknown, unless a
- *   sibling already failed/is invalid, which is enough to decide.
+ * Shared rule set: `aggregateStepStatuses` in mmt-core (see suiteItemStatus).
  */
 export function rollupRunStatus(childStatuses: readonly StepStatus[]): StepStatus {
-  if (childStatuses.length === 0) {
-    return 'default';
-  }
-  let anyRunning = false;
-  let anyCancelled = false;
-  let anyFailed = false;
-  let anyInvalid = false;
-  let anyPending = false;
-  let anyUnknown = false;
-  let anyPassed = false;
-  for (const status of childStatuses) {
-    if (status === 'running') {
-      anyRunning = true;
-    } else if (status === 'cancelled') {
-      anyCancelled = true;
-    } else if (status === 'failed') {
-      anyFailed = true;
-    } else if (status === 'invalid') {
-      anyInvalid = true;
-    } else if (status === 'pending') {
-      anyPending = true;
-    } else if (status === 'passed') {
-      anyPassed = true;
-    } else if (status !== 'skipped') {
-      anyUnknown = true;
-    }
-  }
-  if (anyRunning) {
-    return 'running';
-  }
-  if (anyCancelled) {
-    return 'cancelled';
-  }
-  if (anyFailed) {
-    return 'failed';
-  }
-  if (anyInvalid) {
-    return 'invalid';
-  }
-  if (anyPending) {
-    return 'pending';
-  }
-  if (anyUnknown) {
-    return 'default';
-  }
-  return anyPassed ? 'passed' : 'skipped';
+  return aggregateStepStatuses(childStatuses) as StepStatus;
 }
 
 /** Parent id → child ids (servers excluded: they carry no run status). */
