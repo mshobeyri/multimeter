@@ -18,8 +18,8 @@ import { getSuiteHierarchy } from '../../vsAPI';
 import {
     buildFullSuitePendingState,
     buildTargetPendingState,
+    finishRunState,
     isUnderSuiteTarget,
-    rollupAncestorRunStatus,
 } from './suiteRunStatus';
 import {
     fingerprintHierarchyByEntryId,
@@ -538,6 +538,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
     const pendingLeafResetRef = useRef<'all' | string[] | null>(null);
     /** Partial-run target id; null means full suite run (all ids allowed). */
     const partialRunTargetRef = useRef<string | null>(null);
+    /** Partial run started in the UI but not yet sent to the host (tree refresh in flight). */
+    const unsentSuiteRunIdRef = useRef<string | null>(null);
     const reportQueueRef = useRef<any[]>([]);
     const reportFlushTimerRef = useRef<number | null>(null);
     const durationTimerRef = useRef<number | null>(null);
@@ -911,34 +913,6 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         return result;
     }, [groups, hierarchyPool]);
 
-    const allEntriesHaveHierarchy = useCallback((
-        hierarchyByEntryId: Record<string, SuiteTreeNode>,
-    ): boolean => {
-        for (const group of groups) {
-            for (const entry of group.entries) {
-                if (!entry?.id || !hierarchyByEntryId[entry.id]) {
-                    return false;
-                }
-            }
-        }
-        return groups.some((group) => group.entries.length > 0);
-    }, [groups]);
-
-    /** Rebuild hierarchy from current YAML; update UI only when structure changed. */
-    const ensureHierarchyFresh = useCallback(async (): Promise<Record<string, SuiteTreeNode>> => {
-        const previous = hierarchyByEntryIdRef.current;
-        if (allEntriesHaveHierarchy(previous)) {
-            return previous;
-        }
-        // Full depth for run/flowchart readiness (run path also builds its own tree).
-        const next = await fetchHierarchyByEntryId();
-        if (fingerprintHierarchyByEntryId(next) !== fingerprintHierarchyByEntryId(previous)) {
-            hierarchyByEntryIdRef.current = { ...next };
-            setHierarchyByEntryId({ ...next });
-        }
-        return next;
-    }, [allEntriesHaveHierarchy, fetchHierarchyByEntryId]);
-
     /**
      * Re-ask the extension host for every entry's hierarchy and update the tree
      * when its structure changed. Needed because editing a suite that is
@@ -964,6 +938,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         }
         return merged;
     }, [fetchHierarchyByEntryId]);
+
+    /** Settle leftover running/pending under the run target and roll ancestors up. */
+    const finishLocalRunState = useCallback((cancelled: boolean) => {
+        const target = partialRunTargetRef.current;
+        runDataStore.replaceRunState((prev) =>
+            finishRunState(prev, target, cancelled, groups, hierarchyByEntryIdRef.current));
+        partialRunTargetRef.current = null;
+    }, [groups, runDataStore]);
 
     /** UI spinner sets (mirrored in state for re-renders). */
     const loadingHierarchyRef = useRef<Set<string>>(new Set());
@@ -1327,36 +1309,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 const cancelled = Boolean((message as any).cancelled);
                 flushReportQueue();
                 flushPendingSetenvToPanel();
-                // Clear stuck "running" on own nodes only (no child→parent rollup).
-                runDataStore.replaceRunState((prev) => {
-                    const next = { ...prev };
-                    let changed = false;
-                    Object.keys(next).forEach((id) => {
-                        if (next[id] !== 'running') {
-                            return;
-                        }
-                        if (!isUnderSuiteTarget(partialRunTargetRef.current, id)) {
-                            return;
-                        }
-                        next[id] = cancelled ? 'cancelled' : 'failed';
-                        changed = true;
-                    });
-                    // A partial run only reports the target subtree, so parents
-                    // would keep a stale state (e.g. failed after every child was
-                    // re-run and passed). Recompute ancestors from their children.
-                    const ancestorPatches = rollupAncestorRunStatus(
-                        next,
-                        partialRunTargetRef.current,
-                        groups,
-                        hierarchyByEntryIdRef.current,
-                    );
-                    if (Object.keys(ancestorPatches).length > 0) {
-                        Object.assign(next, ancestorPatches);
-                        changed = true;
-                    }
-                    return changed ? next : prev;
-                });
-                partialRunTargetRef.current = null;
+                finishLocalRunState(cancelled);
                 setIsPaused(false);
                 if (cancelled) {
                     setSuiteRunState('cancelled');
@@ -1392,18 +1345,9 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 }
                 setIsPaused(false);
                 setSuiteRunState('cancelled');
-                runDataStore.replaceRunState((prev) => {
-                    const next: typeof prev = { ...prev };
-                    Object.keys(next).forEach((k) => {
-                        if (next[k] === 'running' || next[k] === 'pending') {
-                            next[k] = 'cancelled';
-                        }
-                    });
-                    return next;
-                });
-                partialRunTargetRef.current = null;
                 flushReportQueue();
                 flushPendingSetenvToPanel();
+                finishLocalRunState(true);
                 return;
             }
 
@@ -1450,7 +1394,7 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
         };
         window.addEventListener('message', handler);
         return () => window.removeEventListener('message', handler);
-    }, [groups, resetLeafState, flushReportQueue, flushPendingSetenvToPanel, mode, trimIgnoredSuiteRuns, runDataStore]);
+    }, [groups, resetLeafState, flushReportQueue, flushPendingSetenvToPanel, finishLocalRunState, mode, trimIgnoredSuiteRuns, runDataStore]);
 
     useEffect(() => {
         if (allPaths.length === 0) {
@@ -1528,11 +1472,14 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
 
         // Ids are positional, so an edit to this suite or to an imported suite
         // can shift them. Refresh, remap the target, then start the run.
+        unsentSuiteRunIdRef.current = nextSuiteRunId;
         void (async () => {
             const fresh = await refreshHierarchyFromHost();
-            if (suiteRunIdRef.current !== nextSuiteRunId) {
+            // Stop pressed (or another run began) before we sent this one.
+            if (unsentSuiteRunIdRef.current !== nextSuiteRunId || suiteRunIdRef.current !== nextSuiteRunId) {
                 return;
             }
+            unsentSuiteRunIdRef.current = null;
             const effectiveTarget = remapSuiteTargetId(requestedTarget, previousHierarchy, fresh);
             if (effectiveTarget !== requestedTarget) {
                 // Drop pending marks left on the stale id, then prime the real target.
@@ -1558,10 +1505,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             suiteRunId: `suite-logs:${Date.now()}`,
             report: { type: 'lifecycle' },
         });
-        if (!allEntriesHaveHierarchy(hierarchyByEntryIdRef.current)) {
-            void ensureHierarchyFresh();
-        }
-    }, [allEntriesHaveHierarchy, ensureHierarchyFresh, suiteRunState]);
+        void refreshHierarchyFromHost();
+    }, [refreshHierarchyFromHost, suiteRunState]);
 
     const onRunTargetsInCore = useCallback(async (target: string) => {
         const requestedTarget = typeof target === 'string' ? target : '';
@@ -1587,8 +1532,20 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
             return;
         }
         setIsPaused(false);
+        // The host does not know this run yet (it ignores stops for unknown ids),
+        // so cancel it here and keep the pending start from sending it.
+        if (unsentSuiteRunIdRef.current === suiteRunId) {
+            unsentSuiteRunIdRef.current = null;
+            setSuiteRunState('cancelled');
+            finishLocalRunState(true);
+            if (suiteRunStartTimeRef.current) {
+                setSuiteRunDurationMs(Date.now() - suiteRunStartTimeRef.current);
+                suiteRunStartTimeRef.current = null;
+            }
+            return;
+        }
         window.vscode?.postMessage({ command: 'stopSuiteRun', suiteRunId });
-    }, [suiteRunId]);
+    }, [suiteRunId, finishLocalRunState]);
 
     const handlePause = useCallback(() => {
         window.vscode?.postMessage({ command: 'pauseTestRun' });

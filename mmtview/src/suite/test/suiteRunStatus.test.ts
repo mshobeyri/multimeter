@@ -7,6 +7,8 @@ import {
   buildTargetPendingState,
   rollupRunStatus,
   rollupAncestorRunStatus,
+  settleRunStateAtEnd,
+  finishRunState,
 } from './suiteRunStatus';
 import type { StepStatus } from '../../shared/types';
 import type { SuiteTreeNode } from './suiteHierarchy';
@@ -380,5 +382,94 @@ describe('rollupAncestorRunStatus', () => {
     expect(rollupAncestorRunStatus(state, 'suite-node:9.9', groups, hierarchy)).toEqual({});
     expect(rollupAncestorRunStatus(state, null, groups, hierarchy)).toEqual({});
     expect(rollupAncestorRunStatus(state, undefined, groups, hierarchy)).toEqual({});
+  });
+});
+
+describe('settleRunStateAtEnd', () => {
+  it('clears pending that never started and fails leftover running on a normal end', () => {
+    const prev: Record<string, StepStatus> = {
+      'suite-node:0': 'invalid',
+      'suite-node:0.0': 'pending',
+      'suite-node:0.1': 'running',
+      'suite-node:0.2': 'passed',
+    };
+    expect(settleRunStateAtEnd(prev, null, false)).toEqual({
+      'suite-node:0': 'invalid',
+      'suite-node:0.1': 'failed',
+      'suite-node:0.2': 'passed',
+    });
+  });
+
+  it('cancels pending and running when the run was stopped', () => {
+    const prev: Record<string, StepStatus> = {
+      'suite-node:0.0': 'pending',
+      'suite-node:0.1': 'running',
+      'suite-node:0.2': 'passed',
+    };
+    expect(settleRunStateAtEnd(prev, null, true)).toEqual({
+      'suite-node:0.0': 'cancelled',
+      'suite-node:0.1': 'cancelled',
+      'suite-node:0.2': 'passed',
+    });
+  });
+
+  it('only touches the partial-run target subtree', () => {
+    const prev: Record<string, StepStatus> = {
+      'suite-node:0.0': 'pending',
+      'suite-node:0.0.1': 'running',
+      'suite-node:0.1': 'pending',
+    };
+    expect(settleRunStateAtEnd(prev, 'suite-node:0.0', false)).toEqual({
+      'suite-node:0.0.1': 'failed',
+      'suite-node:0.1': 'pending',
+    });
+  });
+
+  it('returns the same object when nothing needs settling', () => {
+    const prev: Record<string, StepStatus> = { 'suite-node:0.0': 'passed' };
+    expect(settleRunStateAtEnd(prev, null, false)).toBe(prev);
+  });
+});
+
+describe('finishRunState', () => {
+  const hierarchy: Record<string, SuiteTreeNode> = {
+    'suite-node:0.0': {
+      kind: 'suite',
+      id: 'suite-node:0.0',
+      path: 'nested.mmt',
+      children: [
+        { kind: 'test', id: 'suite-node:0.0.0', path: 'a.mmt' },
+        { kind: 'test', id: 'suite-node:0.0.1', path: 'b.mmt' },
+      ],
+    },
+  };
+  const groups = [{ label: 'G', entries: [{ path: 'nested.mmt', id: 'suite-node:0.0' }] }];
+
+  it('settles the target, then rolls ancestors up from the result', () => {
+    const prev: Record<string, StepStatus> = {
+      'suite-node:0': 'failed',
+      'suite-node:0.0': 'failed',
+      'suite-node:0.0.0': 'passed',
+      'suite-node:0.0.1': 'passed',
+    };
+    expect(finishRunState(prev, 'suite-node:0.0.1', false, groups, hierarchy)).toEqual({
+      'suite-node:0': 'passed',
+      'suite-node:0.0': 'passed',
+      'suite-node:0.0.0': 'passed',
+      'suite-node:0.0.1': 'passed',
+    });
+  });
+
+  it('a stop before the target ran marks it cancelled and the parents follow', () => {
+    const prev: Record<string, StepStatus> = {
+      'suite-node:0': 'passed',
+      'suite-node:0.0': 'passed',
+      'suite-node:0.0.0': 'passed',
+      'suite-node:0.0.1': 'pending',
+    };
+    const next = finishRunState(prev, 'suite-node:0.0.1', true, groups, hierarchy);
+    expect(next['suite-node:0.0.1']).toBe('cancelled');
+    expect(next['suite-node:0.0']).toBe('cancelled');
+    expect(next['suite-node:0']).toBe('cancelled');
   });
 });

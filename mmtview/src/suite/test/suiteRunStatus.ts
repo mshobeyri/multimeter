@@ -26,6 +26,60 @@ export function ownRunStatus(
 }
 
 /**
+ * Settle own-node states when a run is over (ended or stopped), limited to the
+ * partial-run target subtree (or everything for a full run):
+ * - `running` was never finished → `cancelled` when stopped, else `failed`;
+ * - `pending` never started (e.g. a mock server failed first) → `cancelled`
+ *   when stopped, else cleared back to default instead of a clock forever.
+ * Returns `prev` itself when nothing changed.
+ */
+export function settleRunStateAtEnd(
+  prev: Record<string, StepStatus>,
+  target: string | null | undefined,
+  cancelled: boolean,
+): Record<string, StepStatus> {
+  let next: Record<string, StepStatus> | null = null;
+  for (const [id, status] of Object.entries(prev)) {
+    if (status !== 'running' && status !== 'pending') {
+      continue;
+    }
+    if (!isUnderSuiteTarget(target, id)) {
+      continue;
+    }
+    if (!next) {
+      next = { ...prev };
+    }
+    if (cancelled) {
+      next[id] = 'cancelled';
+    } else if (status === 'running') {
+      next[id] = 'failed';
+    } else {
+      delete next[id];
+    }
+  }
+  return next || prev;
+}
+
+/**
+ * Settle the target subtree, then recompute its ancestors. Shared by run end,
+ * host stop, and a stop that arrives before the run was sent.
+ */
+export function finishRunState(
+  prev: Record<string, StepStatus>,
+  target: string | null | undefined,
+  cancelled: boolean,
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): Record<string, StepStatus> {
+  const settled = settleRunStateAtEnd(prev, target, cancelled);
+  const ancestorPatches = rollupAncestorRunStatus(settled, target, groups, hierarchyByEntryId);
+  if (Object.keys(ancestorPatches).length === 0) {
+    return settled;
+  }
+  return { ...settled, ...ancestorPatches };
+}
+
+/**
  * Roll child run states into one parent state.
  *
  * Core only reports a group/suite status for the nodes a run actually executed,
