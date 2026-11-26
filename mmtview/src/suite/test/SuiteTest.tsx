@@ -19,6 +19,7 @@ import {
     buildFullSuitePendingState,
     buildTargetPendingState,
     isUnderSuiteTarget,
+    rollupAncestorRunStatus,
 } from './suiteRunStatus';
 import {
     fingerprintHierarchyByEntryId,
@@ -1340,6 +1341,19 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                         next[id] = cancelled ? 'cancelled' : 'failed';
                         changed = true;
                     });
+                    // A partial run only reports the target subtree, so parents
+                    // would keep a stale state (e.g. failed after every child was
+                    // re-run and passed). Recompute ancestors from their children.
+                    const ancestorPatches = rollupAncestorRunStatus(
+                        next,
+                        partialRunTargetRef.current,
+                        groups,
+                        hierarchyByEntryIdRef.current,
+                    );
+                    if (Object.keys(ancestorPatches).length > 0) {
+                        Object.assign(next, ancestorPatches);
+                        changed = true;
+                    }
                     return changed ? next : prev;
                 });
                 partialRunTargetRef.current = null;

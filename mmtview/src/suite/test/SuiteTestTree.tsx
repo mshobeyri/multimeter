@@ -36,7 +36,7 @@ const owningEntryIdFromTreeIndex = (itemIndex: string): string => {
   return sep >= 0 ? raw.slice(0, sep) : raw;
 };
 
-/** Own run status for a tree row (never rolled up from children). */
+/** Own run status for a tree row (parents are rolled up in the run state, not here). */
 function treeItemRunStatus(
   item: TreeItem<SuiteTestTreeItemData>,
   runStateById: Record<string, StepStatus>,
@@ -687,7 +687,9 @@ const SuiteTestTree = forwardRef<SuiteTestTreeHandle, SuiteTestTreeProps>(functi
     [syncExpandedItems]
   );
 
-  // Icon status is own-id only: never roll up children into parents.
+  // Icon status is own-id only. Parents are kept correct in the run state itself:
+  // core sets them for executed nodes, and SuiteTest rolls ancestors up after a
+  // partial run (rollupAncestorRunStatus), so no rollup happens at render time.
   const getGroupStatus = useCallback((groupItemId: string): StepStatus => {
     const match = /^group-(\d+)$/.exec(groupItemId);
     if (match) {

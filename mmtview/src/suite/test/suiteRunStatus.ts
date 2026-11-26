@@ -25,6 +25,145 @@ export function ownRunStatus(
   return runStateById[id] || 'default';
 }
 
+/**
+ * Roll child run states into one parent state.
+ *
+ * Core only reports a group/suite status for the nodes a run actually executed,
+ * so after re-running one leaf the parents would keep a stale `failed`. This
+ * is the same "worst wins" order core uses (failed > invalid > passed > skipped),
+ * plus the UI-only states:
+ * - any running / cancelled / pending child keeps the parent in that state;
+ * - a child that has never run (default) keeps the parent unknown, unless a
+ *   sibling already failed/is invalid, which is enough to decide.
+ */
+export function rollupRunStatus(childStatuses: readonly StepStatus[]): StepStatus {
+  if (childStatuses.length === 0) {
+    return 'default';
+  }
+  let anyRunning = false;
+  let anyCancelled = false;
+  let anyFailed = false;
+  let anyInvalid = false;
+  let anyPending = false;
+  let anyUnknown = false;
+  let anyPassed = false;
+  for (const status of childStatuses) {
+    if (status === 'running') {
+      anyRunning = true;
+    } else if (status === 'cancelled') {
+      anyCancelled = true;
+    } else if (status === 'failed') {
+      anyFailed = true;
+    } else if (status === 'invalid') {
+      anyInvalid = true;
+    } else if (status === 'pending') {
+      anyPending = true;
+    } else if (status === 'passed') {
+      anyPassed = true;
+    } else if (status !== 'skipped') {
+      anyUnknown = true;
+    }
+  }
+  if (anyRunning) {
+    return 'running';
+  }
+  if (anyCancelled) {
+    return 'cancelled';
+  }
+  if (anyFailed) {
+    return 'failed';
+  }
+  if (anyInvalid) {
+    return 'invalid';
+  }
+  if (anyPending) {
+    return 'pending';
+  }
+  if (anyUnknown) {
+    return 'default';
+  }
+  return anyPassed ? 'passed' : 'skipped';
+}
+
+/** Parent id → child ids (servers excluded: they carry no run status). */
+function buildRunTreeChildren(
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): { childrenOf: Map<string, string[]>; parentOf: Map<string, string> } {
+  const childrenOf = new Map<string, string[]>();
+  const parentOf = new Map<string, string>();
+
+  const link = (parentId: string, childId: string) => {
+    parentOf.set(childId, parentId);
+    const list = childrenOf.get(parentId);
+    if (list) {
+      list.push(childId);
+    } else {
+      childrenOf.set(parentId, [childId]);
+    }
+  };
+
+  const walk = (node: SuiteTreeNode) => {
+    for (const child of suiteTreeChildren(node)) {
+      if (!child || typeof child !== 'object' || child.kind === 'server' || !child.id) {
+        continue;
+      }
+      link(node.id, child.id);
+      walk(child);
+    }
+  };
+
+  groups.forEach((group, gi) => {
+    const groupId = createSuiteNodeId([gi]);
+    for (const entry of group.entries) {
+      const hierarchy = entry?.id ? hierarchyByEntryId[entry.id] : undefined;
+      if (!entry?.id || hierarchy?.kind === 'server') {
+        continue;
+      }
+      link(groupId, entry.id);
+      if (hierarchy) {
+        walk(hierarchy);
+      }
+    }
+  });
+
+  return { childrenOf, parentOf };
+}
+
+/**
+ * After a partial run of `target`, recompute every ancestor's own status from
+ * its children (bottom-up). The target and its descendants are left to core.
+ * Returns only the entries that changed, ready for `patchRunState`.
+ */
+export function rollupAncestorRunStatus(
+  runStateById: Record<string, StepStatus>,
+  target: string | null | undefined,
+  groups: SuiteGroup[],
+  hierarchyByEntryId: Record<string, SuiteTreeNode>,
+): Record<string, StepStatus> {
+  if (!target) {
+    return {};
+  }
+  const { childrenOf, parentOf } = buildRunTreeChildren(groups, hierarchyByEntryId);
+  const working: Record<string, StepStatus> = { ...runStateById };
+  const patches: Record<string, StepStatus> = {};
+
+  const seen = new Set<string>();
+  let ancestor = parentOf.get(target);
+  while (ancestor && !seen.has(ancestor)) {
+    seen.add(ancestor);
+    const kids = childrenOf.get(ancestor) || [];
+    const next = rollupRunStatus(kids.map((id) => working[id] || 'default'));
+    const current = working[ancestor] || 'default';
+    if (next !== current) {
+      working[ancestor] = next;
+      patches[ancestor] = next;
+    }
+    ancestor = parentOf.get(ancestor);
+  }
+  return patches;
+}
+
 /** Collect every node id under a hierarchy root (including the root). */
 export function collectHierarchyNodeIds(root: SuiteTreeNode | null | undefined): string[] {
   if (!root || typeof root !== 'object') {
