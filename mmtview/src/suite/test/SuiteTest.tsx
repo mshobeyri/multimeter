@@ -1281,7 +1281,8 @@ const SuiteTest: React.FC<SuiteTestProps> = ({ content, mode = 'suite', onFlowch
                 if (hint === 'all') {
                     runDataStore.resetReportsAndSpill();
                 } else if (Array.isArray(hint) && hint.length) {
-                    runDataStore.resetPartial(hint);
+                    // Keep run state: onRunTargets already primed pending icons.
+                    runDataStore.resetPartialReports(hint);
                 } else {
                     resetLeafState('all');
                 }

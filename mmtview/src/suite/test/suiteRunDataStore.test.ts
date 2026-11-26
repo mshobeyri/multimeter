@@ -160,4 +160,25 @@ describe('suiteRunDataStore', () => {
       expect(store.applySpill(spill.spilled, spill.stats, ['suite-node:0'], epoch)).toBe(false);
     });
   });
+
+  describe('resetPartialReports', () => {
+    it('clears reports under the target but keeps pending run state', () => {
+      const store = createSuiteRunDataStore();
+      store.appendReports({ 'suite-node:0.0': [sampleReport()] });
+      store.patchRunState({
+        'suite-node:0': 'pending',
+        'suite-node:0.0': 'pending',
+        'suite-node:1': 'passed',
+      });
+
+      store.resetPartialReports(['suite-node:0']);
+
+      expect(store.getRunStateById()).toEqual({
+        'suite-node:0': 'pending',
+        'suite-node:0.0': 'pending',
+        'suite-node:1': 'passed',
+      });
+      expect(store.getReportsById()['suite-node:0.0']).toBeUndefined();
+    });
+  });
 });

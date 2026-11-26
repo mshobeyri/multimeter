@@ -249,10 +249,20 @@ export class SuiteRunDataStore {
     this.bumpTree();
   }
 
-  resetPartial(targets: readonly string[]): void {
+  /**
+   * Clear reports/stats under `targets` but keep run state, so `pending` icons
+   * primed by the Run click survive until core emits `running`.
+   */
+  resetPartialReports(targets: readonly string[]): void {
+    this.resetPartial(targets, { keepRunState: true });
+  }
+
+  resetPartial(targets: readonly string[], opts?: { keepRunState?: boolean }): void {
     this.resetEpoch += 1;
     this.leafReportsById = resetLeafStateMap(this.leafReportsById, targets);
-    this.leafRunStateById = resetLeafStateMap(this.leafRunStateById, targets);
+    if (!opts?.keepRunState) {
+      this.leafRunStateById = resetLeafStateMap(this.leafRunStateById, targets);
+    }
     this.reportStatsById = resetLeafStateMap(this.reportStatsById, targets);
     const spilledRecord = Object.fromEntries(
       Array.from(this.spilledReportIds).map((id) => [id, true]),
