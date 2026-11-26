@@ -1,6 +1,17 @@
 type: api
 title: Delayed response
 description: Waits up to 10000ms, then returns a small JSON payload.
-url: https://test.mmt.dev/delay/250
-protocol: http
+inputs:
+  ms: "250"
+url: https://test.mmt.dev/delay/<<i:ms>>
 method: get
+format: json
+examples:
+  - id: "200"
+    title: "200"
+    expect:
+      status: 200
+      body:
+        delayed: 250
+        method: GET
+        timestamp: 2026-01-01T00:00:00.000Z

@@ -2,5 +2,16 @@ type: api
 title: Get sample XML
 description: Returns a fixed sample XML document.
 url: https://test.mmt.dev/xml
-protocol: http
 method: get
+format: json
+examples:
+  - id: "200"
+    title: "200"
+    expect:
+      status: 200
+      body: |
+        <?xml version="1.0"?>
+        <root>
+          <id>1</id>
+          <name>Multimeter</name>
+        </root>

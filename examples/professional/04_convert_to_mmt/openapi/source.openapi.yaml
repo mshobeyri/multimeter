@@ -8,7 +8,8 @@ info:
     named example, then Send — responses match these paths exactly.
 
     Useful for demos of Multimeter OpenAPI import: multiple methods, path and
-    query parameters, named request examples, shared components, and auth.
+    query parameters, named request/response examples (response examples become
+    example expect), shared components, and auth.
   contact:
     name: Multimeter
     url: https://mmt.dev
@@ -141,6 +142,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EchoResponse'
+              examples:
+                user:
+                  summary: User profile
+                  description: Echo of the user-profile request body
+                  value:
+                    method: POST
+                    url: https://test.mmt.dev/echo
+                    path: /echo
+                    body:
+                      name: Ada
+                      role: engineer
+                    timestamp: "2026-01-01T00:00:00.000Z"
+                nested:
+                  summary: Nested payload
+                  value:
+                    method: POST
+                    url: https://test.mmt.dev/echo
+                    path: /echo
+                    body:
+                      order:
+                        id: 1001
+                        items:
+                          - sku: ABC
+                            qty: 2
+                    timestamp: "2026-01-01T00:00:00.000Z"
+                emptyObject:
+                  summary: Empty object
+                  value:
+                    method: POST
+                    url: https://test.mmt.dev/echo
+                    path: /echo
+                    body: {}
+                    timestamp: "2026-01-01T00:00:00.000Z"
 
     put:
       tags: [echo]
@@ -173,6 +207,27 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/EchoResponse'
+              examples:
+                update:
+                  summary: Update fields
+                  value:
+                    method: PUT
+                    url: https://test.mmt.dev/echo
+                    path: /echo
+                    body:
+                      id: 1
+                      name: Multimeter
+                      active: true
+                    timestamp: "2026-01-01T00:00:00.000Z"
+                patchLike:
+                  summary: Partial fields
+                  value:
+                    method: PUT
+                    url: https://test.mmt.dev/echo
+                    path: /echo
+                    body:
+                      active: false
+                    timestamp: "2026-01-01T00:00:00.000Z"
 
     get:
       tags: [echo]
@@ -280,7 +335,7 @@ paths:
               example:
                 delayed: 250
                 method: GET
-                timestamp: 2026-01-01T00:00:00.000Z
+                timestamp: "2026-01-01T00:00:00.000Z"
 
   /headers:
     get:

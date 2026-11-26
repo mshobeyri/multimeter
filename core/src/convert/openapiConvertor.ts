@@ -2,6 +2,7 @@ import { APIData, AuthConfig, ExampleData } from '../data/APIData';
 import { EnvData, EnvVariableValue } from '../data/EnvData';
 import { slugValue } from '../util/identifierUtils';
 import { formatBody } from '../parse/markupConvertor';
+import { OMIT_SENTINEL } from '../tokens/omitKeyword';
 
 const HTTP_METHODS = new Set(['get', 'post', 'put', 'patch', 'delete', 'head', 'options', 'trace']);
 const SERVER_VAR_RE = /\{([a-zA-Z0-9._-]+)\}/g;
@@ -279,7 +280,7 @@ export function openApiToAPI(openApiSpec: any): APIData[] {
         delete (apiData as any).auth;
       }
 
-      attachOpenApiExamples(apiData, operationForExamples, format);
+      attachOpenApiExamples(apiData, operationForExamples, format, openApiSpec);
 
       apis.push(apiData);
     });
@@ -469,7 +470,15 @@ function formatExampleBody(format: 'json' | 'xml' | 'text', value: any): string 
   return formatBody(format, value, true);
 }
 
-type NamedRequestExample = {name: string; description?: string; body: string};
+type NamedRequestExample = {name: string; description?: string; body: string; value: any};
+type NamedResponseExample = {
+  name: string;
+  description?: string;
+  status: number;
+  body: any;
+};
+
+const MISSING = Symbol('openapi-missing');
 
 function collectNamedRequestExamples(
     operation: any, format: 'json' | 'xml' | 'text'): NamedRequestExample[] {
@@ -493,6 +502,7 @@ function collectNamedRequestExamples(
     const example: NamedRequestExample = {
       name,
       body: formatExampleBody(format, value),
+      value,
     };
     if (typeof spec?.description === 'string' && spec.description) {
       example.description = spec.description;
@@ -502,39 +512,311 @@ function collectNamedRequestExamples(
   return examples;
 }
 
+function parseJsonObject(value: unknown): Record<string, any>|null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, any>;
+  }
+  if (typeof value !== 'string') {
+    return null;
+  }
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed;
+    }
+  } catch {
+    // not JSON
+  }
+  return null;
+}
+
+function valuesEqual(a: unknown, b: unknown): boolean {
+  if (Object.is(a, b)) {
+    return true;
+  }
+  try {
+    return JSON.stringify(a) === JSON.stringify(b);
+  } catch {
+    return false;
+  }
+}
+
+function isPlainObject(value: unknown): value is Record<string, any> {
+  return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Build a shared JSON body: keep common values, put omit + <<i:…>> on diverging
+ * leaves (including whole-body omit when shapes are incompatible).
+ */
+function planJsonRequestBodies(
+    namedExamples: NamedRequestExample[],
+): {
+  body: any;
+  inputs: Record<string, any>;
+  exampleInputs: Record<string, Record<string, any>>;
+} {
+  const objects = namedExamples.map((example) => parseJsonObject(example.value ?? example.body));
+  if (objects.some((obj) => !obj) || objects.length === 0) {
+    return planWholeBodyInputs(namedExamples);
+  }
+
+  const inputs: Record<string, any> = {};
+  const exampleInputs: Record<string, Record<string, any>> = {};
+  for (const example of namedExamples) {
+    exampleInputs[example.name] = {};
+  }
+  let inputSeq = 0;
+  const nextInputKey = (path: string[]): string => {
+    const base = normalizeOpenApiInputKey(['body', ...path].join('_')) || `body_field_${inputSeq}`;
+    let key = base;
+    while (Object.prototype.hasOwnProperty.call(inputs, key)) {
+      inputSeq += 1;
+      key = `${base}_${inputSeq}`;
+    }
+    return key;
+  };
+
+  const merge = (values: any[], path: string[]): any => {
+    const present = values.filter((v) => v !== MISSING);
+    if (present.length === values.length && present.every((v) => valuesEqual(v, present[0]))) {
+      return present[0];
+    }
+    if (present.length > 0 && present.every(isPlainObject) &&
+        values.every((v) => v === MISSING || isPlainObject(v))) {
+      const keySet = new Set<string>();
+      for (const obj of present) {
+        Object.keys(obj).forEach((k) => keySet.add(k));
+      }
+      const out: Record<string, any> = {};
+      for (const key of keySet) {
+        const childValues = values.map((v) =>
+          (v !== MISSING && isPlainObject(v) && Object.prototype.hasOwnProperty.call(v, key))
+            ? v[key]
+            : MISSING);
+        out[key] = merge(childValues, [...path, key]);
+      }
+      return out;
+    }
+
+    const inputKey = nextInputKey(path);
+    inputs[inputKey] = OMIT_SENTINEL;
+    namedExamples.forEach((example, idx) => {
+      const value = values[idx];
+      if (value === MISSING) {
+        return;
+      }
+      exampleInputs[example.name][inputKey] = value;
+    });
+    return `<<i:${inputKey}>>`;
+  };
+
+  const body = merge(objects as any[], []);
+  return {body, inputs, exampleInputs};
+}
+
+function planWholeBodyInputs(namedExamples: NamedRequestExample[]): {
+  body: any;
+  inputs: Record<string, any>;
+  exampleInputs: Record<string, Record<string, any>>;
+} {
+  const inputs: Record<string, any> = {body: OMIT_SENTINEL};
+  const exampleInputs: Record<string, Record<string, any>> = {};
+  for (const example of namedExamples) {
+    exampleInputs[example.name] = {body: example.body};
+  }
+  return {body: '<<i:body>>', inputs, exampleInputs};
+}
+
+function collectNamedResponseExamples(
+    operation: any, spec: any, format: 'json' | 'xml' | 'text'): NamedResponseExample[] {
+  const responses = operation?.responses;
+  if (!responses || typeof responses !== 'object') {
+    return [];
+  }
+  const statusKeys = Object.keys(responses).sort((a, b) => {
+    const rank = (code: string) => {
+      if (code === '200') {
+        return 0;
+      }
+      if (code === '201') {
+        return 1;
+      }
+      if (/^2\d\d$/.test(code)) {
+        return 2;
+      }
+      if (code.toLowerCase() === 'default') {
+        return 9;
+      }
+      return 5;
+    };
+    const ra = rank(a);
+    const rb = rank(b);
+    return ra !== rb ? ra - rb : a.localeCompare(b);
+  });
+
+  const out: NamedResponseExample[] = [];
+  for (const statusKey of statusKeys) {
+    const status = /^\d+$/.test(statusKey) ? Number(statusKey) : 200;
+    if (status >= 300 && statusKey.toLowerCase() !== 'default') {
+      continue;
+    }
+    const response = resolveOpenApiNode(spec, responses[statusKey]);
+    const content = response?.content;
+    if (!content || typeof content !== 'object') {
+      continue;
+    }
+    const contentTypes = Object.keys(content);
+    const firstContentType = contentTypes[0];
+    if (!firstContentType) {
+      continue;
+    }
+    const contentSpec = resolveOpenApiNode(spec, content[firstContentType]);
+    const named = contentSpec?.examples;
+    if (named && typeof named === 'object' && !Array.isArray(named)) {
+      for (const [key, exampleSpec] of Object.entries(named) as Array<[string, any]>) {
+        const value = exampleSpec?.value ?? exampleSpec?.example;
+        if (value === undefined) {
+          continue;
+        }
+        const name = String(exampleSpec?.summary || exampleSpec?.name || key || '').trim() || key;
+        const item: NamedResponseExample = {name, status, body: value};
+        if (typeof exampleSpec?.description === 'string' && exampleSpec.description) {
+          item.description = exampleSpec.description;
+        }
+        out.push(item);
+      }
+      continue;
+    }
+    if (contentSpec?.example !== undefined) {
+      out.push({
+        name: statusKey === 'default' ? 'default' : String(status),
+        status,
+        body: contentSpec.example,
+      });
+    }
+  }
+  return out;
+}
+
+function exampleLookupKey(name: string): string {
+  return slugValue(name).replace(/-/g, '');
+}
+
+function attachResponseExpects(
+    examples: ExampleData[],
+    responseExamples: NamedResponseExample[],
+): ExampleData[] {
+  if (responseExamples.length === 0) {
+    return examples;
+  }
+  const byKey = new Map<string, ExampleData>();
+  for (const example of examples) {
+    const id = example.id || example.title || '';
+    if (id) {
+      byKey.set(exampleLookupKey(id), example);
+    }
+  }
+  const next = [...examples];
+  let matchedAny = false;
+  for (const response of responseExamples) {
+    const expectMap: Record<string, any> = {
+      status: response.status,
+      body: response.body,
+    };
+    const key = exampleLookupKey(response.name);
+    const existing = byKey.get(key);
+    if (existing) {
+      existing.expect = {...(existing.expect || {}), ...expectMap};
+      if (!existing.description && response.description) {
+        existing.description = response.description;
+      }
+      matchedAny = true;
+      continue;
+    }
+    const created: ExampleData = {
+      id: response.name,
+      title: response.name,
+      expect: expectMap,
+    };
+    if (response.description) {
+      created.description = response.description;
+    }
+    next.push(created);
+    byKey.set(key, created);
+  }
+  // No name overlap: give every request example the first success response expect.
+  if (!matchedAny && examples.length > 0 && responseExamples.length > 0) {
+    const primary = responseExamples[0];
+    const fallbackExpect = {status: primary.status, body: primary.body};
+    for (const example of next) {
+      if (examples.includes(example) && !example.expect) {
+        example.expect = {...fallbackExpect};
+      }
+    }
+  }
+  return next;
+}
+
 function attachOpenApiExamples(
-    apiData: APIData, operation: any, format: 'json' | 'xml' | 'text'): void {
+    apiData: APIData,
+    operation: any,
+    format: 'json' | 'xml' | 'text',
+    spec: any,
+): void {
   const namedExamples = collectNamedRequestExamples(operation, format);
-  if (namedExamples.length === 0) {
+  const responseExamples = collectNamedResponseExamples(operation, spec, format);
+
+  let examples: ExampleData[] = [];
+
+  if (namedExamples.length === 1) {
+    const only = namedExamples[0];
+    const parsed = format === 'json' ? parseJsonObject(only.value ?? only.body) : null;
+    apiData.body = parsed ?? only.body;
+    const item: ExampleData = {id: only.name, title: only.name};
+    if (only.description) {
+      item.description = only.description;
+    }
+    examples = [item];
+  } else if (namedExamples.length > 1) {
+    if (!apiData.inputs) {
+      apiData.inputs = {};
+    }
+    const plan = format === 'json'
+      ? planJsonRequestBodies(namedExamples)
+      : planWholeBodyInputs(namedExamples);
+    apiData.body = plan.body;
+    Object.assign(apiData.inputs, plan.inputs);
+    examples = namedExamples.map((example) => {
+      const item: ExampleData = {id: example.name, title: example.name};
+      if (example.description) {
+        item.description = example.description;
+      }
+      const overrides = plan.exampleInputs[example.name] || {};
+      if (Object.keys(overrides).length > 0) {
+        item.inputs = overrides;
+      }
+      return item;
+    });
+  }
+
+  if (namedExamples.length === 0 && responseExamples.length === 0) {
     return;
   }
 
-  const defaultBody = typeof apiData.body === 'string'
-    ? apiData.body
-    : (apiData.body != null ? formatExampleBody(format, apiData.body) : namedExamples[0].body);
-  if (!apiData.inputs) {
-    apiData.inputs = {};
-  }
-  if (apiData.body !== '<<i:body>>') {
-    apiData.inputs.body = defaultBody;
-    apiData.body = '<<i:body>>';
-  } else if (apiData.inputs.body === undefined) {
-    apiData.inputs.body = defaultBody;
-  }
+  examples = attachResponseExpects(examples, responseExamples);
 
-  const examples: ExampleData[] = namedExamples.map((example) => {
-    const item: ExampleData = {id: example.name, title: example.name};
-    if (example.description) {
-      item.description = example.description;
-    }
-    if (example.body !== apiData.inputs?.body) {
-      item.inputs = {body: example.body};
-    }
-    return item;
-  }).filter((example) => example.id || example.inputs || example.description);
+  examples = examples.filter(
+      (example) => example.id || example.inputs || example.description || example.expect);
 
   if (examples.length > 0) {
     apiData.examples = examples;
+  }
+  if (Object.keys(apiData.inputs || {}).length === 0) {
+    delete (apiData as any).inputs;
+  }
+  if (apiData.body === undefined || apiData.body === null || apiData.body === '') {
+    delete (apiData as any).body;
   }
 }
 

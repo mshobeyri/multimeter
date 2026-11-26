@@ -402,17 +402,21 @@ function responseToOutputs(response: any): {apiOutputs: Record<string, string>; 
   if (typeof response?.code === 'number') {
     apiOutputs.status = 'status';
     apiOutputs.statusCode = 'status';
+    // Match OpenAPI expect shape: status + body (+ headers), not flattened fields.
     exampleOutputs.status = response.code;
-    exampleOutputs.statusCode = response.code;
+  }
+  const responseHeaders = extractKeyValue(response?.header || response?.headers || []);
+  if (responseHeaders && Object.keys(responseHeaders).length > 0) {
+    exampleOutputs.headers = responseHeaders;
   }
   if (typeof response?.body === 'string' && response.body.length > 0) {
     try {
       const parsed = JSON.parse(response.body);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        for (const [key, value] of Object.entries(parsed)) {
+        for (const [key] of Object.entries(parsed)) {
           apiOutputs[key] = `body.${key}`;
-          exampleOutputs[key] = value;
         }
+        exampleOutputs.body = parsed;
       } else {
         apiOutputs.body = 'body';
         exampleOutputs.body = parsed;

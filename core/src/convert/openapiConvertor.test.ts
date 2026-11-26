@@ -159,15 +159,17 @@ describe('openapiConvertor.openApiToAPI', () => {
     };
     const apis = openApiToAPI(spec);
     expect(apis).toHaveLength(1);
-    expect(apis[0].body).toBe('<<i:body>>');
-    expect(JSON.parse(String(apis[0].inputs?.body))).toEqual({name: 'Default'});
+    // Shared shape: keep structure, omit the diverging field (not whole <<i:body>>).
+    expect(apis[0].body).toEqual({name: '<<i:body_name>>'});
+    expect(apis[0].inputs?.body_name).toBe('__MMT_OMIT__');
     expect(apis[0].examples?.map(example => example.id)).toEqual(['Cat', 'Dog']);
     expect(apis[0].examples?.map(example => example.title)).toEqual(['Cat', 'Dog']);
-    expect(apis[0].examples?.[0].inputs?.body && JSON.parse(String(apis[0].examples[0].inputs.body))).toEqual({name: 'Whiskers'});
+    expect(apis[0].examples?.[0].inputs).toEqual({body_name: 'Whiskers'});
+    expect(apis[0].examples?.[1].inputs).toEqual({body_name: 'Rex'});
     expect(apis[0].examples?.[1].description).toBe('A dog');
   });
 
-  it('uses the first named example as the default body when no single example is set', () => {
+  it('inlines a single named request example as the main body', () => {
     const spec = {
       openapi: '3.0.0',
       paths: {
@@ -187,10 +189,75 @@ describe('openapiConvertor.openApiToAPI', () => {
       },
     };
     const api = openApiToAPI(spec)[0];
-    expect(api.body).toBe('<<i:body>>');
-    expect(JSON.parse(String(api.inputs?.body))).toEqual({ok: true});
+    expect(api.body).toEqual({ok: true});
+    expect(api.inputs?.body).toBeUndefined();
     expect(api.examples?.[0].id).toBe('only');
     expect(api.examples?.[0].inputs).toBeUndefined();
+  });
+
+  it('omits the whole body when named JSON examples have incompatible shapes', () => {
+    const spec = {
+      openapi: '3.0.0',
+      paths: {
+        '/pets': {
+          post: {
+            requestBody: {
+              content: {
+                'application/json': {
+                  examples: {
+                    obj: {summary: 'Obj', value: {name: 'Ada'}},
+                    arr: {summary: 'Arr', value: [1, 2]},
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.body).toBe('<<i:body>>');
+    expect(api.inputs?.body).toBe('__MMT_OMIT__');
+    expect(api.examples?.[0].inputs?.body).toContain('Ada');
+    expect(api.examples?.[1].inputs?.body).toContain('1');
+  });
+
+  it('maps response examples into example expect body + status', () => {
+    const spec = {
+      openapi: '3.0.0',
+      paths: {
+        '/pets': {
+          post: {
+            requestBody: {
+              content: {
+                'application/json': {
+                  examples: {
+                    cat: {summary: 'Cat', value: {name: 'Whiskers'}},
+                  },
+                },
+              },
+            },
+            responses: {
+              '200': {
+                content: {
+                  'application/json': {
+                    examples: {
+                      cat: {summary: 'Cat', value: {id: 1, name: 'Whiskers'}},
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+    const api = openApiToAPI(spec)[0];
+    expect(api.examples?.[0].id).toBe('Cat');
+    expect(api.examples?.[0].expect).toEqual({
+      status: 200,
+      body: {id: 1, name: 'Whiskers'},
+    });
   });
 
   it('resolves internal parameter refs from components', () => {

@@ -2,23 +2,47 @@ type: api
 title: Echo PUT body
 description: Same echo envelope as POST, for PUT requests.
 inputs:
-  body: |-
-    {
-      "id": 1,
-      "name": "Multimeter",
-      "active": true
-    }
+  body_id: omit
+  body_name: omit
+  body_active: omit
 url: https://test.mmt.dev/echo
-protocol: http
 method: put
+format: json
 headers:
+  X-Trace: demo
   Content-Type: application/json
-body: <<i:body>>
+body:
+  id: <<i:body_id>>
+  name: <<i:body_name>>
+  active: <<i:body_active>>
 examples:
-  - name: Update fields
-  - name: Partial fields
+  - id: Update fields
+    title: Update fields
     inputs:
-      body: |-
-        {
-          "active": false
-        }
+      body_id: 1
+      body_name: Multimeter
+      body_active: true
+    expect:
+      status: 200
+      body:
+        method: PUT
+        url: https://test.mmt.dev/echo
+        path: /echo
+        body:
+          id: 1
+          name: Multimeter
+          active: true
+        timestamp: 2026-01-01T00:00:00.000Z
+  - id: Partial fields
+    title: Partial fields
+    inputs:
+      body_active: false
+    expect:
+      status: 200
+      body:
+        method: PUT
+        url: https://test.mmt.dev/echo
+        path: /echo
+        body:
+          active: false
+        timestamp: 2026-01-01T00:00:00.000Z

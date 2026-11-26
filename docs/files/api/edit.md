@@ -9,7 +9,8 @@ API fields are edited inline in the **API tester** — there is no separate Edit
 | {{btn:settings-gear:Settings}} (first tab) | `timeout`, `import` |
 | **Auth** | `auth` — none, bearer, basic, API key, or OAuth2 |
 | **Doc** | `title`, `tags`, `description` — click the pencil next to a section to edit |
-| **Inputs** (request) | Declared `inputs` (pencil), runtime example values, soft **Expect** |
+| **Inputs** (request) | Declared `inputs` (pencil), runtime example values |
+| **Expect** (response) | Read-only expected status (badge), headers, and body for the selected example |
 | **Outputs** (response) | Declared `outputs` / `setenv` (pencil); view mode shows extracted / env values after Send |
 | **Params** / **Headers** / **Body** / **Cookies** | Request message fields (same as Send) |
 
@@ -30,7 +31,7 @@ See [Documentation](./documentation.md) and [Input and output documentation](../
 
 ### Inputs / Outputs
 
-- **Inputs** (request pane): Example dropdown, soft **Expect**, and declared/runtime inputs. When `description` lists allowed values with `<<i:name>> [...]`, those fields show a ⋯ options menu (same as the test runner)
+- **Inputs** (request pane): Example dropdown and declared/runtime inputs. The response **Expect** tab shows expected status / headers / body for the selected example. When `description` lists allowed values with `<<i:name>> [...]`, those fields show a ⋯ options menu (same as the test runner)
 - **Outputs** (response pane): pencil switches between extraction paths and values after Send; **Setenv** works the same way (edit expressions / view env values written after Send)
 
 Protocol-specific fields (GraphQL query, gRPC service/method, WebSocket message) appear on their protocol tabs. See [Protocols](./protocols/index.md).

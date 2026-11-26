@@ -10,18 +10,20 @@ outputs:
   tags: body.tags
 url: <<e:host>>/json
 method: get
+format: json
 headers:
   Accept: application/json
 examples:
-  - name: sample json
+  - id: sample json
+    title: sample json
     expect:
       status: 200
-      statusCode: 200
-      id: 1
-      name: Multimeter
-      description: API testing tool
-      version: 1.0.0
-      tags:
-        - api
-        - testing
-        - automation
+      body:
+        id: 1
+        name: Multimeter
+        description: API testing tool
+        version: 1.0.0
+        tags:
+          - api
+          - testing
+          - automation

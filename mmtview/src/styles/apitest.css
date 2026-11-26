@@ -453,6 +453,30 @@
   padding-bottom: 20px;
 }
 
+.apitest-example-expect > .label {
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.apitest-example-expect > .label:first-child {
+  margin-top: 0;
+}
+
+.apitest-example-expect-body {
+  margin: 0;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: var(--vscode-editor-font-size, 12px);
+  line-height: 1.45;
+  color: var(--vscode-editor-foreground);
+  background: transparent;
+  border: none;
+  overflow: auto;
+  max-height: 100%;
+}
+
 .apitest-tab-count {
   margin-left: 3px;
   color: var(--vscode-descriptionForeground, #858585);

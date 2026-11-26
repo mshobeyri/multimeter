@@ -157,6 +157,40 @@ describe('postmanConvertor.postmanToAPI', () => {
     });
   });
 
+  it('maps saved responses into expect status/headers/body', () => {
+    const apis = postmanToAPI({
+      item: [
+        {
+          name: 'Get sample',
+          request: {
+            method: 'GET',
+            url: {raw: 'https://test.mmt.dev/json'},
+          },
+          response: [
+            {
+              name: 'ok',
+              code: 200,
+              header: [
+                {key: 'Content-Type', value: 'application/json'},
+              ],
+              body: '{"id":1,"name":"Multimeter"}',
+            },
+          ],
+        },
+      ],
+    });
+    expect(apis[0].examples?.[0].expect).toEqual({
+      status: 200,
+      headers: {'Content-Type': 'application/json'},
+      body: {id: 1, name: 'Multimeter'},
+    });
+    expect(apis[0].outputs).toMatchObject({
+      status: 'status',
+      id: 'body.id',
+      name: 'body.name',
+    });
+  });
+
   it('when examples exist, exposes url/headers/body as inputs and builds example overrides', () => {
     const collection = {
       item: [

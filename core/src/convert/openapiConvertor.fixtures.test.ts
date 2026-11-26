@@ -100,13 +100,11 @@ describe('openapiConvertor fixtures', () => {
     expect(createRevision).toMatchObject({
       method: 'post',
       url: 'https://api.example.com/v1/items/<<i:item_id>>',
-      inputs: {item_id: 'abc-123', body: expect.any(String)},
-      body: '<<i:body>>',
+      inputs: {item_id: 'abc-123'},
+      body: {name: 'Draft widget', active: false},
     });
-    expect(JSON.parse(String(createRevision?.inputs?.body))).toEqual({name: 'Widget', active: true});
     expect(createRevision?.examples?.map(example => example.id)).toEqual(['Draft']);
-    expect(createRevision?.examples?.[0].inputs?.body && JSON.parse(String(createRevision.examples[0].inputs.body)))
-        .toEqual({name: 'Draft widget', active: false});
+    expect(createRevision?.examples?.[0].inputs).toBeUndefined();
   });
 
   it('lists and converts YAML OpenAPI fixture through importConvertor', () => {

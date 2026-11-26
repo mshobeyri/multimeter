@@ -649,11 +649,11 @@ tests {
     expect(apis).toHaveLength(1);
     expect(apis[0].examples.map(example => example.title)).toEqual(['Cat', 'Dog']);
     expect(apis[0].examples[0].exampleIndex).toBe(0);
-    expect(apis[0].api.body).toBe('<<i:body>>');
-    expect(apis[0].api.inputs?.body).toContain('Default');
+    expect(apis[0].api.body).toEqual({name: '<<i:body_name>>'});
+    expect(apis[0].api.inputs?.body_name).toBe('__MMT_OMIT__');
     expect(apis[0].api.examples?.[0].id).toBe('Cat');
-    expect(apis[0].api.examples?.[0].inputs?.body).toContain('Whiskers');
-    expect(apis[0].api.examples?.[1].inputs?.body).toContain('Rex');
+    expect(apis[0].api.examples?.[0].inputs).toEqual({body_name: 'Whiskers'});
+    expect(apis[0].api.examples?.[1].inputs).toEqual({body_name: 'Rex'});
 
     const cat = findSpecApiSelection(apis, apis[0].examples[0].id);
     expect(cat?.item.id).toBe(apis[0].id);
@@ -732,13 +732,13 @@ tests {
     const result = convertToMmt(JSON.stringify(spec), {sourcePath: 'pets.openapi.json'});
     expect(result.files).toHaveLength(1);
     const api = parseYamlStrict(result.files[0].content);
-    // Whole-value tokens pack as bare form in YAML.
-    expect(api.body).toBe('i:body');
-    expect(api.inputs.body).toContain('Default');
+    // Single named example is inlined as the main body (no <<i:body>> wrapper).
+    expect(api.body).toEqual({name: 'Whiskers'});
+    expect(api.inputs?.body).toBeUndefined();
     expect(api.examples).toHaveLength(1);
     expect(api.examples[0].id).toBe('Cat');
     expect(api.examples[0].title).toBe('Cat');
-    expect(api.examples[0].inputs.body).toContain('Whiskers');
+    expect(api.examples[0].inputs).toBeUndefined();
   });
 
   it('converts Postman saved examples into API example YAML', () => {

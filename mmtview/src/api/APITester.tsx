@@ -5,6 +5,7 @@ import { SplitPane } from "@rexxars/react-split-pane";
 import { extractInputConstraintsFromDescription } from "mmt-core/api-edit/paramConstraints";
 import { APIData, exampleExpect, exampleId, exampleTitle } from "mmt-core/data/APIData";
 import { JSONRecord, JSONValue, Method, Protocol, RequestFormat, ResponseFormat, requestFormat, responseFormat } from "mmt-core/data/CommonData";
+import { snapshotResponseExpect } from "mmt-core/api-edit/exampleExpectView";
 import { resolveRequestFormat } from "mmt-core/tokens/formatResolve";
 import KSVEditor from "../components/KSVEditor";
 import StableTextInput from "../components/StableTextInput";
@@ -58,7 +59,7 @@ import SectionEditLabel, { SectionEditDone } from "../components/SectionEditLabe
 import FadePane from "../components/FadePane";
 import KVEditor from "../components/KVEditor";
 import { safeList } from "mmt-core/util/safer";
-import ApiTestsEditor from "./ApiTestsEditor";
+import ExampleExpectPanel from "./ExampleExpectPanel";
 import ApiSettingsEditor from "./ApiSettingsEditor";
 import ApiAuthEditor from "./ApiAuthEditor";
 import { formatBody } from "mmt-core/parse/markupConvertor";
@@ -119,7 +120,7 @@ type EditorTab =
   | "grpc"
   | "inputs";
 
-type ResponseTab = "body" | "headers" | "cookies" | "outputs";
+type ResponseTab = "body" | "headers" | "cookies" | "outputs" | "expect";
 type RequestResponseLayout = "stacked" | "side-by-side";
 
 function countNamedEntries(record?: Record<string, unknown> | null): number {
@@ -229,6 +230,7 @@ const RESPONSE_TAB_OPTIONS: Array<{ key: ResponseTab; label: string }> = [
   { key: "headers", label: "Headers" },
   { key: "cookies", label: "Cookies" },
   { key: "outputs", label: "Outputs" },
+  { key: "expect", label: "Expect" },
 ];
 
 const REQUEST_PANE_RATIO_KEY = "apitest-request-pane-ratio";
@@ -580,7 +582,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     }
     return out;
   }, [outputKeys, outputs]);
-  const outputFieldSuggestions = outputKeys;
 
   /** Declared setenv env names; view mode shows values written after Send. */
   const setenvKeys = useMemo(
@@ -779,7 +780,8 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
     if (saved === "inout") {
       return "outputs";
     }
-    if (saved === "body" || saved === "headers" || saved === "cookies" || saved === "outputs") {
+    if (saved === "body" || saved === "headers" || saved === "cookies" || saved === "outputs" ||
+        saved === "expect") {
       return saved;
     }
     return "body";
@@ -1433,17 +1435,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       newExample.inputs = cloneInputs(currentInputs);
     }
 
-    // Snapshot extracted output values into soft expect (equality checks).
-    const definedOutputKeys = Object.keys(api.outputs || {});
-    if (definedOutputKeys.length > 0) {
-      const exampleExpect: JSONRecord = {};
-      definedOutputKeys.forEach((key) => {
-        if (Object.prototype.hasOwnProperty.call(outputs, key)) {
-          exampleExpect[key] = outputs[key];
-        }
+    // Snapshot the live response as expected status + body (headers stay optional).
+    if (responseData) {
+      const snapped = snapshotResponseExpect({
+        status: typeof responseData.status === "number" ? responseData.status : undefined,
+        body: responseData.body as JSONValue | undefined,
       });
-      if (Object.keys(exampleExpect).length > 0) {
-        newExample.expect = exampleExpect;
+      if (snapped) {
+        newExample.expect = snapped;
       }
     }
 
@@ -1483,6 +1482,33 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
         };
       });
   }, [api.cookies, api.headers, api.inputs, isGraphQL, isGrpc]);
+
+  /** Expect to show: selected example, else first example that has expect. */
+  const displayExampleExpect = useMemo(() => {
+    if (selectedExampleIdx >= 0 && examples[selectedExampleIdx]) {
+      return exampleExpect(examples[selectedExampleIdx]);
+    }
+    for (const ex of examples) {
+      const expect = exampleExpect(ex);
+      if (expect) {
+        return expect;
+      }
+    }
+    return undefined;
+  }, [examples, selectedExampleIdx]);
+
+  const expectedStatus = useMemo(() => {
+    const raw = displayExampleExpect?.status ??
+        displayExampleExpect?.status_code ??
+        displayExampleExpect?.statusCode;
+    if (typeof raw === "number" && Number.isFinite(raw)) {
+      return raw;
+    }
+    if (typeof raw === "string" && /^-?\d+$/.test(raw.trim())) {
+      return Number(raw.trim());
+    }
+    return undefined;
+  }, [displayExampleExpect]);
 
   const responseOverflowTabs = useMemo((): OverflowTabItem<ResponseTab>[] => {
     return RESPONSE_TAB_OPTIONS.map(tab => {
@@ -2108,36 +2134,6 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
                 onResetKey={selectedExampleIdx === -1 ? handleResetInputKey : undefined}
               />
             )}
-            {selectedExampleIdx >= 0 && examples[selectedExampleIdx] ? (
-              <ApiTestsEditor
-                test={{
-                  expect: exampleExpect(examples[selectedExampleIdx]),
-                }}
-                results={apiTestResults}
-                fieldSuggestions={outputFieldSuggestions}
-                canContainToken
-                valueContext={bodyValueContext}
-                onChange={(next) => {
-                  const nextExamples = examples.map((ex, i) => {
-                    if (i !== selectedExampleIdx) {
-                      return ex;
-                    }
-                    const updated = { ...ex };
-                    // Migrating off deprecated outputs when writing expect.
-                    if (updated.outputs !== undefined) {
-                      delete updated.outputs;
-                    }
-                    if (next?.expect) {
-                      updated.expect = next.expect;
-                    } else {
-                      delete updated.expect;
-                    }
-                    return updated;
-                  });
-                  updateSession({ examples: nextExamples });
-                }}
-              />
-            ) : null}
         </div>
         </KeptTabPanel>
       )}
@@ -2178,18 +2174,28 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </>
         ) : null}
         <div className="apitest-response-meta">
-          {(responseData?.duration) && <ResponseDuration duration={responseData.duration} />}
-          {(responseData) && (
-            <ResponseStatus
-              protocol={requestData?.protocol}
-              status={responseData.status}
-              errorMessage={responseData.errorMessage}
-              errorCode={responseData.errorCode}
-              warning={responseData.warning}
-              onClick={() => showHistoryPanel({ openLatest: true })}
-            />
+          {responseTab === "expect" ? (
+            expectedStatus !== undefined ? (
+              <ResponseStatus status={expectedStatus} />
+            ) : null
+          ) : (
+            <>
+              {(responseData?.duration) && <ResponseDuration duration={responseData.duration} />}
+              {(responseData) && (
+                <ResponseStatus
+                  protocol={requestData?.protocol}
+                  status={responseData.status}
+                  errorMessage={responseData.errorMessage}
+                  errorCode={responseData.errorCode}
+                  warning={responseData.warning}
+                  onClick={() => showHistoryPanel({ openLatest: true })}
+                />
+              )}
+            </>
           )}
-          {responseData ? <span className="apitest-tabs-tools-divider" aria-hidden /> : null}
+          {(responseTab === "expect" ? expectedStatus !== undefined : Boolean(responseData)) ? (
+            <span className="apitest-tabs-tools-divider" aria-hidden />
+          ) : null}
           <div className="bodyview-header-actions">
             {responseTab === "body" ? (
             <button
@@ -2249,6 +2255,14 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
       </div>
       <div className="apitest-pane-fill">
       <FadePane paneKey={responseTab} className="apitest-pane-fill" durationMs={100}>
+        {keepResponseTab("expect") && (
+          <KeptTabPanel key="expect" active={responseTab === "expect"}>
+          <div className="apitest-section">
+            <ExampleExpectPanel expect={displayExampleExpect} />
+          </div>
+          </KeptTabPanel>
+        )}
+
         {keepResponseTab("outputs") && (
           <KeptTabPanel key="outputs" active={responseTab === "outputs"}>
           <div className="apitest-section">
@@ -2375,7 +2389,7 @@ const APITest: React.FC<APITestProps> = ({ api, onUpdateApi, onRequestReset, rig
           </KeptTabPanel>
         )}
       </FadePane>
-      {(requestInFlight || (!responseData && responseTab !== "outputs")) ? (
+      {(requestInFlight || (!responseData && responseTab !== "outputs" && responseTab !== "expect")) ? (
         <NoResponseYet
           onSend={sendWithResolvedBody}
           onCancel={handleCancel}

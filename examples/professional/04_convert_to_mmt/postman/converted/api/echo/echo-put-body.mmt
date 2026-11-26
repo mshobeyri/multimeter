@@ -2,12 +2,11 @@ type: api
 title: Echo PUT body
 url: <<e:host>>/echo
 method: put
+format: json
 headers:
   Content-Type: application/json
   X-Trace: demo
-body: |-
-  {
-    "id": 1,
-    "name": "Multimeter",
-    "active": true
-  }
+body:
+  id: 1
+  name: Multimeter
+  active: true
